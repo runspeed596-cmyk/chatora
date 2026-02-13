@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     Network Security Configuration for Chatora
-    - Production: HTTPS only, certificate pinning
+    - Production: HTTPS preferred, cleartext allowed until SSL is configured
     - Debug: Allow cleartext for local dev servers
 -->
 <network-security-config>
@@ -13,16 +13,16 @@
         </trust-anchors>
     </base-config>
 
-    <!-- Production server: pin certificates -->
-    <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">46.249.100.239</domain>
+    <!-- Production server: allow cleartext until SSL is configured -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">172.86.95.177</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
         <!--
-            Certificate pinning: Replace with your actual certificate SHA-256 pins.
+            Certificate pinning: Enable after SSL certificate is installed.
             Generate pin with:
-              openssl s_client -connect 46.249.100.239:443 | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+              openssl s_client -connect 172.86.95.177:443 | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
             Add a backup pin from your CA's intermediate certificate.
         -->
         <!-- Uncomment when you have your SSL certificate:
@@ -31,6 +31,13 @@
             <pin digest="SHA-256">REPLACE_WITH_BACKUP_PIN=</pin>
         </pin-set>
         -->
+    </domain-config>
+
+    <!-- Local development: allow cleartext for emulator and local network -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">10.0.2.2</domain>
+        <domain includeSubdomains="false">localhost</domain>
+        <domain includeSubdomains="true">192.168.0.0</domain>
     </domain-config>
 
     <!-- Debug overrides: allow cleartext for local development -->

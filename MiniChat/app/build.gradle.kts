@@ -23,8 +23,9 @@ android {
     buildTypes {
         debug {
             isMinifyEnabled = false
-            buildConfigField("String", "API_BASE_URL", "\"http://192.168.70.113:8080/\"")
-            buildConfigField("String", "WS_URL", "\"ws://192.168.70.113:8080/ws-native\"")
+            isShrinkResources = false
+            buildConfigField("String", "API_BASE_URL", "\"http://172.86.95.177:8080/\"")
+            buildConfigField("String", "WS_URL", "\"ws://172.86.95.177:8080/ws-native\"")
             buildConfigField("Boolean", "ENABLE_LOGGING", "true")
         }
         release {
@@ -34,8 +35,8 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            buildConfigField("String", "API_BASE_URL", "\"https://46.249.100.239:8080/\"")
-            buildConfigField("String", "WS_URL", "\"wss://46.249.100.239:8080/ws-native\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://172.86.95.177:8080/\"")
+            buildConfigField("String", "WS_URL", "\"ws://172.86.95.177:8080/ws-native\"")
             buildConfigField("Boolean", "ENABLE_LOGGING", "false")
         }
     }
