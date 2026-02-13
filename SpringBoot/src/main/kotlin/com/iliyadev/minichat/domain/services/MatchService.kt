@@ -183,7 +183,13 @@ class MatchService(
     private fun isValidMatch(u1: WaitingUser, u2: WaitingUser, strict: Boolean): Boolean {
         // Anti-Abuse Rules (Spec mandatory)
         if (u1.userId == u2.userId) return false
-        if (u1.ipAddress == u2.ipAddress && u1.ipAddress != "127.0.0.1") return false
+        // Same-IP check: Skip for private/Docker IPs (they're all behind proxy)
+        val isPrivateIp = u1.ipAddress.startsWith("127.") || 
+                          u1.ipAddress.startsWith("10.") || 
+                          u1.ipAddress.startsWith("172.") || 
+                          u1.ipAddress.startsWith("192.168.") ||
+                          u1.ipAddress == "0:0:0:0:0:0:0:1"
+        if (u1.ipAddress == u2.ipAddress && !isPrivateIp) return false
         
         // Repeat Prevention (Spec mandatory)
         // LOOSENED FOR SMALL POOLS: If only 2 people, allow matching again to prevent deadlocks in testing
