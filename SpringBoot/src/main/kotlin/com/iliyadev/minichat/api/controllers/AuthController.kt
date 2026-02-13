@@ -5,6 +5,7 @@ import com.iliyadev.minichat.core.security.GoogleAuthService
 import com.iliyadev.minichat.core.response.ApiResponse
 import com.iliyadev.minichat.domain.usecases.auth.*
 import jakarta.validation.Valid
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -17,6 +18,14 @@ class AuthController(
     private val googleLoginUseCase: GoogleLoginUseCase,
     private val emailAuthUseCase: EmailAuthUseCase
 ) {
+
+    @GetMapping("/health")
+    fun health(): ApiResponse<Map<String, String>> {
+        return ApiResponse.success(
+            mapOf("status" to "UP", "service" to "Chatora API"),
+            "Service is healthy"
+        )
+    }
 
     @PostMapping("/login")
     fun login(

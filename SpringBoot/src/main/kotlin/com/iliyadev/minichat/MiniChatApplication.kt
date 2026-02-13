@@ -6,8 +6,8 @@ import org.springframework.scheduling.annotation.EnableScheduling
 
 @EnableScheduling
 @SpringBootApplication
-class MiniChatApplication
+class ChatoraApplication
 
 fun main(args: Array<String>) {
-    runApplication<MiniChatApplication>(*args)
+    runApplication<ChatoraApplication>(*args)
 }

@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.nextcode.minichat"
+    namespace = "com.chatora.app"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.nextcode.minichat"
+        applicationId = "com.chatora.app"
         minSdk = 24
         targetSdk = 36
         versionCode = 1

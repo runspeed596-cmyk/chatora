@@ -1,5 +1,5 @@
 # ===========================================
-# MiniChat ProGuard / R8 Rules
+# Chatora ProGuard / R8 Rules
 # ===========================================
 # Aggressive optimization passes
 -optimizationpasses 5
@@ -24,8 +24,8 @@
 # ===========================================
 -keepattributes Signature
 -keepattributes *Annotation*
--keep class com.nextcode.minichat.data.** { *; }
--keep class com.nextcode.minichat.domain.** { *; }
+-keep class com.chatora.app.data.** { *; }
+-keep class com.chatora.app.domain.** { *; }
 -keep class com.google.gson.** { *; }
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
@@ -35,7 +35,7 @@
 # WebRTC (Native)
 # ===========================================
 -keep class org.webrtc.** { *; }
--keep class com.nextcode.minichat.webrtc.** { *; }
+-keep class com.chatora.app.webrtc.** { *; }
 
 # ===========================================
 # Kotlin Coroutines

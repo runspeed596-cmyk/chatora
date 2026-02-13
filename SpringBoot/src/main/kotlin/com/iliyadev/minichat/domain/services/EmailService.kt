@@ -18,11 +18,11 @@ class EmailService(
             
             helper.setFrom("amooozeshbebin@gmail.com")
             helper.setTo(to)
-            helper.setSubject("MiniChat Verification Code")
+            helper.setSubject("Chatora Verification Code")
             
             val htmlContent = """
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-                    <h2 style="color: #4CAF50; text-align: center;">Welcome to MiniChat!</h2>
+                    <h2 style="color: #4CAF50; text-align: center;">Welcome to Chatora!</h2>
                     <p>Hello,</p>
                     <p>Thank you for registering. Please use the following code to verify your email address:</p>
                     <div style="background-color: #f9f9f9; padding: 15px; border-radius: 5px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #333;">
@@ -31,7 +31,7 @@ class EmailService(
                     <p>This code will expire in 10 minutes.</p>
                     <p>If you didn't request this code, please ignore this email.</p>
                     <hr style="border: null; border-top: 1px solid #eee; margin: 20px 0;">
-                    <p style="font-size: 12px; color: #888; text-align: center;">&copy; 2026 MiniChat Team. All rights reserved.</p>
+                    <p style="font-size: 12px; color: #888; text-align: center;">&copy; 2026 Chatora Team. All rights reserved.</p>
                 </div>
             """.trimIndent()
             

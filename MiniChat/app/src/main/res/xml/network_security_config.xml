@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    Network Security Configuration for MiniChat
+    Network Security Configuration for Chatora
     - Production: HTTPS only, certificate pinning
     - Debug: Allow cleartext for local dev servers
 -->

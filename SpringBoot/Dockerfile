@@ -1,5 +1,5 @@
 # ===========================================
-# MiniChat Spring Boot API — Production Dockerfile
+# Chatora Spring Boot API — Production Dockerfile
 # ===========================================
 # Multi-stage build for smaller, more secure image
 
@@ -25,7 +25,7 @@ RUN ./gradlew bootJar --no-daemon
 FROM eclipse-temurin:21-jre-alpine
 
 # Security: create non-root user
-RUN addgroup -S minichat && adduser -S minichat -G minichat
+RUN addgroup -S Chatora && adduser -S Chatora -G Chatora
 
 WORKDIR /app
 
@@ -33,10 +33,10 @@ WORKDIR /app
 COPY --from=builder /app/build/libs/SpringBoot-0.0.1-SNAPSHOT.jar app.jar
 
 # Create uploads directory
-RUN mkdir -p /app/uploads && chown -R minichat:minichat /app
+RUN mkdir -p /app/uploads && chown -R Chatora:Chatora /app
 
 # Switch to non-root user
-USER minichat
+USER Chatora
 
 # Expose port
 EXPOSE 8080
