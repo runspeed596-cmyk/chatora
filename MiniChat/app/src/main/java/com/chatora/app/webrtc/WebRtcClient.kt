@@ -83,6 +83,9 @@ class WebRtcClient @Inject constructor(
         surfaceTextureHelper = SurfaceTextureHelper.create("CaptureThread", eglBase.eglBaseContext)
     }
 
+    // Store local surface reference for deferred sink attachment
+    private var localSurface: SurfaceViewRenderer? = null
+
     fun startLocalVideo(surface: SurfaceViewRenderer) {
         try {
             surface.init(eglBase.eglBaseContext, null)
@@ -90,38 +93,44 @@ class WebRtcClient @Inject constructor(
             // Already initialized
         }
         surface.setMirror(true)
+        localSurface = surface
         
         if (isCameraRunning && localVideoTrack != null) {
             localVideoTrack?.addSink(surface)
             return
         }
 
-        try {
-            videoCapturer = createCameraCapturer(context) ?: return
-            
-            val videoSource = factory.createVideoSource(videoCapturer!!.isScreencast)
-            videoCapturer!!.initialize(surfaceTextureHelper, context, videoSource.capturerObserver)
-            videoCapturer!!.startCapture(640, 480, 30) // Lower resolution for instant feel and low latency
-            
-            localVideoTrack = factory.createVideoTrack("100", videoSource)
-            localVideoTrack?.addSink(surface)
-            
-            // AUDIO OPTIMIZATION
-            val audioConstraints = MediaConstraints().apply {
-                mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
-                mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression", "true"))
+        // Move ALL heavy WebRTC init to background thread — prevents ANR from Object.wait() in native code
+        scope.launch {
+            try {
+                videoCapturer = createCameraCapturer(context) ?: return@launch
+                
+                val videoSource = factory.createVideoSource(videoCapturer!!.isScreencast)
+                videoCapturer!!.initialize(surfaceTextureHelper, context, videoSource.capturerObserver)
+                videoCapturer!!.startCapture(640, 480, 30)
+                
+                localVideoTrack = factory.createVideoTrack("100", videoSource)
+                // addSink is thread-safe in WebRTC
+                localSurface?.let { localVideoTrack?.addSink(it) }
+                
+                // AUDIO OPTIMIZATION
+                val audioConstraints = MediaConstraints().apply {
+                    mandatory.add(MediaConstraints.KeyValuePair("googEchoCancellation", "true"))
+                    mandatory.add(MediaConstraints.KeyValuePair("googAutoGainControl", "true"))
+                    mandatory.add(MediaConstraints.KeyValuePair("googHighpassFilter", "true"))
+                    mandatory.add(MediaConstraints.KeyValuePair("googNoiseSuppression", "true"))
+                }
+                val audioSource = factory.createAudioSource(audioConstraints)
+                localAudioTrack = factory.createAudioTrack("101", audioSource)
+                localAudioTrack?.setEnabled(true)
+                
+                enableSpeakerphone()
+                
+                isCameraRunning = true
+                android.util.Log.d("WebRtcClient", "Camera + Audio initialized on background thread")
+            } catch (e: Exception) {
+                android.util.Log.e("WebRtcClient", "Error initializing camera on background thread", e)
             }
-            val audioSource = factory.createAudioSource(audioConstraints)
-            localAudioTrack = factory.createAudioTrack("101", audioSource)
-            localAudioTrack?.setEnabled(true)
-            
-            enableSpeakerphone()
-            
-            isCameraRunning = true
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
@@ -173,26 +182,47 @@ class WebRtcClient @Inject constructor(
     }
 
     fun initRemoteSurface(surface: SurfaceViewRenderer) {
+        // ALWAYS store renderer first — so onTrack can find it even if init throws
+        remoteRenderer = surface
         try {
             surface.init(eglBase.eglBaseContext, null)
             surface.setEnableHardwareScaler(true)
             surface.setMirror(false)
             surface.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
-            // Store renderer so onTrack can find it
-            remoteRenderer = surface
-            // If track already arrived before UI was ready, bind immediately
-            remoteVideoTrack?.let { track ->
-                android.util.Log.d("WebRtcClient", "initRemoteSurface: Track already available, adding sink now")
-                track.addSink(surface)
-            }
+            android.util.Log.d("WebRtcClient", "initRemoteSurface: Surface initialized successfully")
+        } catch (e: IllegalStateException) {
+            // Already initialized — this is OK
+            android.util.Log.w("WebRtcClient", "initRemoteSurface: Surface already initialized (OK)")
         } catch (e: Exception) {
             android.util.Log.e("WebRtcClient", "Error initializing remote surface", e)
+        }
+        // If track already arrived before UI was ready, bind immediately
+        attachSinkToRemoteTrack()
+    }
+
+    /**
+     * Thread-safe helper: attaches remoteRenderer to remoteVideoTrack if both are available.
+     * Can be called from any thread — safe for onTrack (WebRTC thread) and initRemoteSurface (main thread).
+     */
+    @Synchronized
+    private fun attachSinkToRemoteTrack() {
+        val track = remoteVideoTrack
+        val renderer = remoteRenderer
+        if (track != null && renderer != null) {
+            android.util.Log.d("WebRtcClient", "attachSinkToRemoteTrack: Binding track to renderer")
+            try {
+                track.addSink(renderer)
+            } catch (e: Exception) {
+                android.util.Log.e("WebRtcClient", "attachSinkToRemoteTrack: Failed", e)
+            }
+        } else {
+            android.util.Log.d("WebRtcClient", "attachSinkToRemoteTrack: Not ready yet (track=$track, renderer=$renderer)")
         }
     }
 
     fun createPeerConnection() {
-        // CRITICAL: Close and nullify previous connection to prevent memory leak & thread buildup
-        closePeerConnection()
+        // NOTE: Caller is responsible for calling closePeerConnection() BEFORE this.
+        // We do NOT call closePeerConnection() here to avoid double-clearing remoteRenderer.
         hasRemoteDescription = false
         pendingIceCandidates.clear()
 
@@ -270,11 +300,8 @@ class WebRtcClient @Inject constructor(
                     if (track.kind() == "video") {
                         remoteVideoTrack = track as VideoTrack
                         android.util.Log.d("WebRtcClient", "onTrack: Remote video track received. Renderer=${remoteRenderer != null}")
-                        // Always try to add sink to stored renderer
-                        remoteRenderer?.let { renderer ->
-                            android.util.Log.d("WebRtcClient", "onTrack: Adding sink to stored renderer")
-                            remoteVideoTrack!!.addSink(renderer)
-                        }
+                        // Use synchronized helper to safely attach sink
+                        attachSinkToRemoteTrack()
                         onRemoteVideoTrackReceived?.invoke(remoteVideoTrack!!)
                     }
                 }

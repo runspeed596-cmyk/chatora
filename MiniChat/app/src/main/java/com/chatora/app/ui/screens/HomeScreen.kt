@@ -363,38 +363,46 @@ fun PremiumVideoContainer(
         shadowElevation = 8.dp
     ) {
         Box(Modifier.fillMaxSize()) {
+            // ===== REMOTE VIDEO RENDERER — ALWAYS ALIVE =====
+            // Never destroyed/recreated between states. Eliminates EGL lifecycle corruption.
+            AndroidView(
+                factory = { ctx ->
+                    SurfaceViewRenderer(ctx).apply {
+                        initRemoteVideo(this)
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // ===== STATE OVERLAYS — only the overlay changes, not the renderer =====
             when (uiState) {
                 is MatchUiState.Found -> {
-                    AndroidView(
-                        factory = { ctx -> SurfaceViewRenderer(ctx).apply { initRemoteVideo(this) } },
-                        onRelease = { 
-                            releaseRemoteVideo(it)
-                            it.release() 
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-                    
                     if (!isVideoReady) {
                         VideoPlaceholderOverlay(partnerName = uiState.partner.username)
                     }
                 }
                 is MatchUiState.Searching -> {
-                    SearchingAnimation()
+                    // Dark overlay covers the renderer during search
+                    Box(Modifier.fillMaxSize().background(Color.Black)) {
+                        SearchingAnimation()
+                    }
                 }
                 is MatchUiState.Error -> {
-                    Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(Icons.Default.ErrorOutline, null, tint = Color(0xFFF06262), modifier = Modifier.size(64.dp))
-                        Spacer(Modifier.height(16.dp))
-                        Text(uiState.message, color = Color.LightGray)
-                        Spacer(Modifier.height(24.dp))
-                        Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+                    Box(Modifier.fillMaxSize().background(Color.Black)) {
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(Icons.Default.ErrorOutline, null, tint = Color(0xFFF06262), modifier = Modifier.size(64.dp))
+                            Spacer(Modifier.height(16.dp))
+                            Text(uiState.message, color = Color.LightGray)
+                            Spacer(Modifier.height(24.dp))
+                            Button(onClick = onRetry) { Text(stringResource(R.string.retry)) }
+                        }
                     }
                 }
                 else -> {
-                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
                         Text(stringResource(R.string.minichat_logo_text), color = Color.White.copy(alpha = 0.1f), fontWeight = FontWeight.Black, fontSize = 32.sp)
                     }
                 }

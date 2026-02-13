@@ -247,6 +247,10 @@ class MatchViewModel @Inject constructor(
                 )
                 android.util.Log.d("MINICHAT_DEBUG", "UI State updated to Found")
 
+                // Reset video state for new connection — renderer persists but needs new track
+                _remoteVideoReady.value = false
+                launchRetryMechanism()
+
                 // Subscribe to signaling channel
                 callSubscriptionId = repository.subscribe("/topic/call/$currentMatchId")
                 chatSubscriptionId = repository.subscribe("/topic/chat/$currentMatchId")
@@ -316,26 +320,78 @@ class MatchViewModel @Inject constructor(
 
     // ...
 
+    // Persistent renderer reference — lives for the entire session, never destroyed
+    private var remoteRendererRef: org.webrtc.SurfaceViewRenderer? = null
+
     fun initRemoteVideo(renderer: org.webrtc.SurfaceViewRenderer) {
+        remoteRendererRef = renderer
         webRtcClient.initRemoteSurface(renderer)
         
         // FRAME LISTENER: Detect when the first frame actually arrives to remove placeholder
         renderer.addFrameListener({
             android.util.Log.d("MINICHAT_DEBUG", "Remote Video First Frame Rendered!")
             _remoteVideoReady.value = true
-        }, 1.0f) // Scale 1.0 (no resize needed for just a trigger)
+        }, 1.0f)
 
         // FIX: If track was received BEFORE UI was ready, attach it now
         webRtcClient.remoteVideoTrack?.addSink(renderer)
         
+        // This callback persists across ALL connections — handles track swapping
         webRtcClient.onRemoteVideoTrackReceived = { track ->
-            track.addSink(renderer)
+            android.util.Log.d("MINICHAT_DEBUG", "onRemoteVideoTrackReceived: new track => adding sink to persistent renderer")
+            remoteRendererRef?.let { r ->
+                track.addSink(r)
+                // Re-install frame listener for new track
+                r.addFrameListener({
+                    android.util.Log.d("MINICHAT_DEBUG", "Remote Video First Frame Rendered (new track)!")
+                    _remoteVideoReady.value = true
+                }, 1.0f)
+            }
+        }
+
+        // RETRY MECHANISM: If no frame in 3 seconds, forcefully re-attach sink
+        launchRetryMechanism()
+    }
+
+    private var retryJob: kotlinx.coroutines.Job? = null
+
+    private fun launchRetryMechanism() {
+        retryJob?.cancel()
+        retryJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(3000)
+            if (!_remoteVideoReady.value && _matchState.value is MatchUiState.Found) {
+                android.util.Log.w("MINICHAT_DEBUG", "No video frame after 3s — retrying sink attachment")
+                val renderer = remoteRendererRef ?: return@launch
+                webRtcClient.remoteVideoTrack?.let { track ->
+                    try {
+                        track.removeSink(renderer)
+                        track.addSink(renderer)
+                        android.util.Log.d("MINICHAT_DEBUG", "Sink re-attached successfully")
+                    } catch (e: Exception) {
+                        android.util.Log.e("MINICHAT_DEBUG", "Sink re-attach failed", e)
+                    }
+                }
+            }
+            kotlinx.coroutines.delay(3000)
+            if (!_remoteVideoReady.value && _matchState.value is MatchUiState.Found) {
+                android.util.Log.w("MINICHAT_DEBUG", "No video frame after 6s — final retry")
+                val renderer = remoteRendererRef ?: return@launch
+                webRtcClient.remoteVideoTrack?.let { track ->
+                    try {
+                        track.removeSink(renderer)
+                        track.addSink(renderer)
+                    } catch (e: Exception) {
+                        android.util.Log.e("MINICHAT_DEBUG", "Final sink re-attach failed", e)
+                    }
+                }
+            }
         }
     }
 
     fun releaseRemoteVideo(renderer: org.webrtc.SurfaceViewRenderer) {
+        // Only reset video ready state — renderer stays alive
         _remoteVideoReady.value = false
-        webRtcClient.clearRemoteVideoTrack(renderer)
+        retryJob?.cancel()
     }
 
     private var connectionTimeoutJob: Job? = null
