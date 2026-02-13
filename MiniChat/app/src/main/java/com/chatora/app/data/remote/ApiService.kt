@@ -53,7 +53,8 @@ data class AuthResponse(
     val userId: String,
     val username: String,
     val tempUsername: Boolean,
-    val emailVerified: Boolean = true
+    val emailVerified: Boolean = true,
+    val verificationCode: String? = null
 )
 
 interface ApiService {
@@ -73,7 +74,7 @@ interface ApiService {
     suspend fun verifyEmail(@Body request: VerifyEmailRequest): Response<ApiResponse<AuthResponse>>
 
     @POST("auth/email/resend-code")
-    suspend fun resendCode(@Body request: EmailResendRequest): Response<ApiResponse<String>>
+    suspend fun resendCode(@Body request: EmailResendRequest): Response<ApiResponse<Map<String, String>>>
 
     @GET("users/me")
     suspend fun getMe(): Response<ApiResponse<UserDto>>

@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">فتح %1$s بريميوم</string>
     <string name="continue_button">متابعة</string>
     <string name="cancel_anytime">إلغاء في أي وقت. الشروط تنطبق.</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">اختر جنسك</string>
+    <string name="gender_selection_desc">للحصول على أفضل تجربة مطابقة يرجى تحديد جنسك. لا يمكن تغييره بسهولة لاحقا.</string>
+    <string name="confirm_selection">تأكيد الاختيار</string>
+    <string name="male">ذكر</string>
+    <string name="female">أنثى</string>
 </resources>

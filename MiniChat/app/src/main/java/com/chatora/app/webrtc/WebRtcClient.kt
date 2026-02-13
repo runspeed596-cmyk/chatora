@@ -41,6 +41,10 @@ class WebRtcClient @Inject constructor(
     var onRemoteVideoTrackReceived: ((VideoTrack) -> Unit)? = null
     var onConnectionStateChanged: ((PeerConnection.PeerConnectionState) -> Unit)? = null
 
+    // ICE Candidate Queueing — buffer candidates received before remote description is set
+    private val pendingIceCandidates = mutableListOf<IceCandidate>()
+    private var hasRemoteDescription = false
+
     private var audioDeviceModule: JavaAudioDeviceModule? = null
 
     init {
@@ -179,18 +183,40 @@ class WebRtcClient @Inject constructor(
     fun createPeerConnection() {
         // CRITICAL: Close and nullify previous connection to prevent memory leak & thread buildup
         closePeerConnection()
+        hasRemoteDescription = false
+        pendingIceCandidates.clear()
 
+        // Multiple STUN servers for redundancy and better NAT traversal
+        // + TURN servers for relay when direct peer-to-peer fails (symmetric NAT, firewalls)
         val iceServers = listOf(
-            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer()
+            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun3.l.google.com:19302").createIceServer(),
+            PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer(),
+            // Free TURN servers (Open Relay Project) — critical for users behind strict NATs
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:80")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
+                .createIceServer(),
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
+                .createIceServer(),
+            PeerConnection.IceServer.builder("turn:openrelay.metered.ca:443?transport=tcp")
+                .setUsername("openrelayproject")
+                .setPassword("openrelayproject")
+                .createIceServer(),
         )
         
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers).apply {
             sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
-            bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE // Optimize for fewer candidates/ports
+            bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
             rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
-            tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED // Prefer UDP for speed
-            // CONTINUOUS GATHERING: Don't wait for all candidates to be gathered before sending offer
+            tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
             continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
+            // ICE restart support — allow ICE to be restarted on connectivity failures
+            iceTransportsType = PeerConnection.IceTransportsType.ALL
         }
         
         peerConnection = factory.createPeerConnection(rtcConfig, object : PeerConnection.Observer {
@@ -263,6 +289,8 @@ class WebRtcClient @Inject constructor(
     fun handleOffer(sdp: String) {
         peerConnection?.setRemoteDescription(object : SdpObserverAdapter() {
             override fun onSetSuccess() {
+                hasRemoteDescription = true
+                flushPendingIceCandidates()
                 createAnswer()
             }
         }, SessionDescription(SessionDescription.Type.OFFER, sdp))
@@ -284,21 +312,50 @@ class WebRtcClient @Inject constructor(
     }
 
     fun handleAnswer(sdp: String) {
-        peerConnection?.setRemoteDescription(object : SdpObserverAdapter() {}, SessionDescription(SessionDescription.Type.ANSWER, sdp))
+        peerConnection?.setRemoteDescription(object : SdpObserverAdapter() {
+            override fun onSetSuccess() {
+                hasRemoteDescription = true
+                flushPendingIceCandidates()
+            }
+        }, SessionDescription(SessionDescription.Type.ANSWER, sdp))
     }
 
     fun handleIceCandidate(sdpMid: String, sdpMLineIndex: Int, candidate: String) {
-        peerConnection?.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex, candidate))
+        val iceCandidate = IceCandidate(sdpMid, sdpMLineIndex, candidate)
+        if (hasRemoteDescription) {
+            peerConnection?.addIceCandidate(iceCandidate)
+        } else {
+            // Queue candidate — will be flushed after remote description is set
+            android.util.Log.d("WebRtcClient", "Queueing ICE candidate (remote desc not set yet)")
+            pendingIceCandidates.add(iceCandidate)
+        }
+    }
+
+    private fun flushPendingIceCandidates() {
+        if (pendingIceCandidates.isNotEmpty()) {
+            android.util.Log.d("WebRtcClient", "Flushing ${pendingIceCandidates.size} pending ICE candidates")
+            pendingIceCandidates.forEach { candidate ->
+                peerConnection?.addIceCandidate(candidate)
+            }
+            pendingIceCandidates.clear()
+        }
+    }
+
+    /**
+     * Restart ICE gathering to recover from failed/disconnected connections.
+     * Called by ViewModel when connection state is DISCONNECTED.
+     */
+    fun restartIce() {
+        android.util.Log.d("WebRtcClient", "Restarting ICE...")
+        hasRemoteDescription = false
+        pendingIceCandidates.clear()
+        peerConnection?.restartIce()
     }
 
     fun closePeerConnection() {
         try {
             android.util.Log.d("WebRtcClient", "closePeerConnection: Disposing...")
-            // DETACH SINKS FIRST
             remoteVideoTrack?.let { track ->
-                // Since we don't always have a reference to the renderer here, 
-                // we rely on clearRemoteVideoTrack() being called by ViewModel first.
-                // But as a safety:
                 track.setEnabled(false)
             }
             
@@ -306,6 +363,8 @@ class WebRtcClient @Inject constructor(
             peerConnection = null
             remoteVideoTrack = null
             currentMatchId = null
+            hasRemoteDescription = false
+            pendingIceCandidates.clear()
         } catch (e: Exception) {
             e.printStackTrace()
         }

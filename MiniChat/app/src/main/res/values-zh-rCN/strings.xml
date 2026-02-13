@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">解锁 %1$s 会员</string>
     <string name="continue_button">继续</string>
     <string name="cancel_anytime">随时取消。适用条款。</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">选择您的性别</string>
+    <string name="gender_selection_desc">为了获得最佳匹配体验，请选择您的性别。之后不能轻易更改。</string>
+    <string name="confirm_selection">确认选择</string>
+    <string name="male">男</string>
+    <string name="female">女</string>
 </resources>

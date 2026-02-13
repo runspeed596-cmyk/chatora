@@ -19,7 +19,8 @@ data class AuthResponse(
     val userId: String,
     val username: String,
     val tempUsername: Boolean,
-    val emailVerified: Boolean = true
+    val emailVerified: Boolean = true,
+    val verificationCode: String? = null
 )
 
 data class RefreshTokenRequest(

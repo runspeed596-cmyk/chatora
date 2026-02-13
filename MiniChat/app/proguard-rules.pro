@@ -1,35 +1,54 @@
 # ===========================================
 # Chatora ProGuard / R8 Rules
 # ===========================================
-# Aggressive optimization passes
 -optimizationpasses 5
 -dontusemixedcaseclassnames
 -verbose
 
 # ===========================================
-# Retrofit
+# GLOBAL: Keep generic type info everywhere
 # ===========================================
 -keepattributes Signature
 -keepattributes Exceptions
+-keepattributes *Annotation*
+-keepattributes InnerClasses
+-keepattributes EnclosingMethod
+
+# ===========================================
+# Retrofit (CRITICAL for R8 full mode)
+# ===========================================
+# Retrofit creates proxies for interfaces — R8 sees no implementations
+# and strips method signatures. These rules prevent that.
+-keep,allowobfuscation class retrofit2.** { *; }
 -keepclasseswithmembers class * {
     @retrofit2.http.* <methods>;
 }
--keep,allowobfuscation class retrofit2.** { *; }
 -keepclassmembers,allowshrinking,allowobfuscation interface * {
     @retrofit2.http.* <methods>;
 }
+-keep,allowobfuscation,allowshrinking class retrofit2.Response
+-keep,allowobfuscation,allowshrinking class retrofit2.Call
+
+# R8 full mode: keep Retrofit interface method signatures
+-if interface * { @retrofit2.http.* <methods>; }
+-keep,allowobfuscation,allowshrinking interface <1>
+
+# Keep the ApiService interface entirely (our Retrofit API)
+-keep interface com.chatora.app.data.remote.ApiService { *; }
 
 # ===========================================
 # Gson / Serialization
 # ===========================================
--keepattributes Signature
--keepattributes *Annotation*
--keep class com.chatora.app.data.** { *; }
--keep class com.chatora.app.domain.** { *; }
 -keep class com.google.gson.** { *; }
+-keep class com.google.gson.reflect.TypeToken { *; }
+-keep class * extends com.google.gson.reflect.TypeToken
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
+
+# Keep ALL data/model classes (needed for Gson deserialization)
+-keep class com.chatora.app.data.** { *; }
+-keep class com.chatora.app.domain.** { *; }
 
 # ===========================================
 # WebRTC (Native)
@@ -109,11 +128,18 @@
 -keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
 
 # ===========================================
-# Google Sign-In / Credentials
+# Google Sign-In / Credentials / Identity
 # ===========================================
 -keep class androidx.credentials.** { *; }
+-keep class androidx.credentials.internal.** { *; }
+-keep class androidx.credentials.provider.** { *; }
 -keep class com.google.android.libraries.identity.** { *; }
 -dontwarn com.google.android.libraries.identity.**
+-keep class com.google.android.libraries.credential.** { *; }
+-dontwarn com.google.android.libraries.credential.**
+-keep class com.google.android.gms.auth.** { *; }
+-keep class com.google.android.gms.common.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
 
 # ===========================================
 # Compose

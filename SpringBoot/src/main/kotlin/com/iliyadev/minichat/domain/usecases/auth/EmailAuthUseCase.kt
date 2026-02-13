@@ -48,11 +48,11 @@ class EmailAuthUseCase(
             println("Warning: Failed to send email to $email, but user was created: ${e.message}")
         }
 
-        return generateAuthResponse(savedUser)
+        return generateAuthResponse(savedUser, verificationCode = code)
     }
 
     @Transactional
-    fun resendCode(email: String) {
+    fun resendCode(email: String): String {
         val user = userRepository.findByEmail(email.trim().lowercase())
             .orElseThrow { UserNotFoundException("No account found with this email address.") }
 
@@ -65,6 +65,7 @@ class EmailAuthUseCase(
         userRepository.save(user)
 
         emailService.sendVerificationCode(user.email!!, code)
+        return code
     }
 
     @Transactional
@@ -111,7 +112,7 @@ class EmailAuthUseCase(
         return generateAuthResponse(savedUser)
     }
 
-    private fun generateAuthResponse(user: User): AuthResponse {
+    private fun generateAuthResponse(user: User, verificationCode: String? = null): AuthResponse {
         val userDetails = org.springframework.security.core.userdetails.User
             .withUsername(user.username)
             .password("")
@@ -124,7 +125,8 @@ class EmailAuthUseCase(
             userId = user.id.toString(),
             username = user.username,
             tempUsername = false,
-            emailVerified = user.emailVerified
+            emailVerified = user.emailVerified,
+            verificationCode = verificationCode
         )
     }
 }

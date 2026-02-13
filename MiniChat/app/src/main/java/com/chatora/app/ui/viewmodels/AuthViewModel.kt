@@ -62,7 +62,7 @@ class AuthViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             try {
                 val credentialManager = CredentialManager.create(context)
-                
+
                 val serverClientId = "1016064715588-04rdpfiiqht0id7vmgel3npipdc41cbo.apps.googleusercontent.com"
 
                 val googleIdOption = GetGoogleIdOption.Builder()
@@ -77,8 +77,14 @@ class AuthViewModel @Inject constructor(
 
                 val result = try {
                     credentialManager.getCredential(context, request)
+                } catch (e: androidx.credentials.exceptions.NoCredentialException) {
+                    _uiState.update { it.copy(isLoading = false, error = "No Google account found. Please add a Google account in device Settings.") }
+                    return@launch
+                } catch (e: androidx.credentials.exceptions.GetCredentialCancellationException) {
+                    _uiState.update { it.copy(isLoading = false) }
+                    return@launch
                 } catch (e: Exception) {
-                    _uiState.update { it.copy(isLoading = false, error = "Credential Manager Error: ${e.message}") }
+                    _uiState.update { it.copy(isLoading = false, error = "Google Sign-In Error [${e::class.java.simpleName}]: ${e.message}") }
                     return@launch
                 }
 
@@ -148,9 +154,16 @@ class AuthViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             val email = _uiState.value.email.trim().lowercase()
             authRepository.registerWithEmail(email, _uiState.value.password, _uiState.value.username)
-                .onSuccess { 
-                    _uiState.update { it.copy(isLoading = false, needsVerification = true) }
-                    startResendTimer() // Timer starts on successful registration (email sent by backend)
+                .onSuccess { response ->
+                    val code = response.verificationCode
+                    if (code != null) {
+                        // Auto-verify with the code from response
+                        _uiState.update { it.copy(needsVerification = true) }
+                        verifyEmail(code)
+                    } else {
+                        _uiState.update { it.copy(isLoading = false, needsVerification = true) }
+                        startResendTimer()
+                    }
                 }
                 .onFailure { error -> 
                     val message = NetworkUtils.getErrorMessageFromException(context, error)
@@ -181,9 +194,14 @@ class AuthViewModel @Inject constructor(
             _uiState.update { it.copy(isLoading = true) }
             val email = _uiState.value.email.trim().lowercase()
             authRepository.resendCode(email)
-                .onSuccess { 
-                    _uiState.update { it.copy(isLoading = false) }
-                    startResendTimer()
+                .onSuccess { data ->
+                    val code = data["verificationCode"]
+                    if (code != null) {
+                        verifyEmail(code)
+                    } else {
+                        _uiState.update { it.copy(isLoading = false) }
+                        startResendTimer()
+                    }
                 }
                 .onFailure { error -> 
                     val message = NetworkUtils.getErrorMessageFromException(context, error)

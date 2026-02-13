@@ -9,7 +9,7 @@ interface AuthRepository {
     suspend fun loginWithEmail(email: String, password: String): Result<AuthResponse>
     suspend fun registerWithEmail(email: String, password: String, username: String): Result<AuthResponse>
     suspend fun verifyEmail(email: String, code: String): Result<AuthResponse>
-    suspend fun resendCode(email: String): Result<String>
+    suspend fun resendCode(email: String): Result<Map<String, String>>
     fun getAccessToken(): Flow<String?>
     suspend fun logout()
 }

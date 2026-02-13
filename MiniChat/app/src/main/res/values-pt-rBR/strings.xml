@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">Desbloquear %1$s Premium</string>
     <string name="continue_button">CONTINUAR</string>
     <string name="cancel_anytime">Cancele a qualquer momento. Termos se aplicam.</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">Selecione seu gênero</string>
+    <string name="gender_selection_desc">Para a melhor experiência de combinação, selecione seu gênero. Não pode ser alterado facilmente depois.</string>
+    <string name="confirm_selection">Confirmar seleção</string>
+    <string name="male">Masculino</string>
+    <string name="female">Feminino</string>
 </resources>

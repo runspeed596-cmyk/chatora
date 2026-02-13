@@ -61,6 +61,22 @@ services:
           cpus: "0.25"
 
   # ===========================================
+  # Postfix Mail Server
+  # ===========================================
+  mailserver:
+    image: boky/postfix
+    container_name: chatora-mail
+    restart: unless-stopped
+    environment:
+      - ALLOWED_SENDER_DOMAINS=${MAIL_DOMAIN:-chatora.app}
+      - RELAYHOST=
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.15"
+
+  # ===========================================
   # Chatora API
   # ===========================================
   api:
@@ -74,6 +90,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      mailserver:
+        condition: service_started
     environment:
       - SPRING_PROFILES_ACTIVE=prod
       - DB_HOST=postgres
@@ -88,10 +106,9 @@ services:
       - JWT_EXPIRATION=${JWT_EXPIRATION:-3600000}
       - JWT_REFRESH_EXPIRATION=${JWT_REFRESH_EXPIRATION:-604800000}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
-      - MAIL_HOST=${MAIL_HOST:-smtp.gmail.com}
-      - MAIL_PORT=${MAIL_PORT:-587}
-      - MAIL_USERNAME=${MAIL_USERNAME:-}
-      - MAIL_PASSWORD=${MAIL_PASSWORD:-}
+      - MAIL_HOST=mailserver
+      - MAIL_PORT=587
+      - MAIL_FROM=${MAIL_FROM:-noreply@chatora.app}
       - XGATE_API_KEY=${XGATE_API_KEY:-}
       - XGATE_BASE_URL=${XGATE_BASE_URL:-https://api.1xgate.com}
       - XGATE_SUCCESS_URL=${XGATE_SUCCESS_URL:-}

@@ -38,7 +38,9 @@ class MatchService(
         val matchId: String,
         val partnerId: String,
         val partnerUsername: String,
-        val initiator: Boolean
+        val initiator: Boolean,
+        val partnerIp: String = "",
+        val partnerCountryCode: String = ""
     )
 
     // POOLS (O(1) lookups)
@@ -218,8 +220,8 @@ class MatchService(
 
         logger.info("MATCH! [${u1.username} <-> ${u2.username}]")
         
-        messagingTemplate.convertAndSendToUser(u1.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u2.userId.toString(), partnerUsername = u2.username, initiator = true))
-        messagingTemplate.convertAndSendToUser(u2.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u1.userId.toString(), partnerUsername = u1.username, initiator = false))
+        messagingTemplate.convertAndSendToUser(u1.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u2.userId.toString(), partnerUsername = u2.username, initiator = true, partnerIp = u2.ipAddress, partnerCountryCode = u2.country))
+        messagingTemplate.convertAndSendToUser(u2.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u1.userId.toString(), partnerUsername = u1.username, initiator = false, partnerIp = u1.ipAddress, partnerCountryCode = u1.country))
     }
 
     fun handleUserLeave(username: String, userId: String? = null, sessionId: String? = null) {

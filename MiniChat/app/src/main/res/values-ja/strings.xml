@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">%1$s プレミアムをアンロック</string>
     <string name="continue_button">続行</string>
     <string name="cancel_anytime">いつでもキャンセル可能。規約が適用されます。</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">性別を選択してください</string>
+    <string name="gender_selection_desc">最高のマッチング体験のため、性別を選択してください。後から簡単には変更できません。</string>
+    <string name="confirm_selection">選択を確認</string>
+    <string name="male">男性</string>
+    <string name="female">女性</string>
 </resources>

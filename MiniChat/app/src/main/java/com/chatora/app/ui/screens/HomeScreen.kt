@@ -15,6 +15,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -96,14 +98,18 @@ fun HomeScreen(
     val primaryBlue = Color(0xFF4A76FD)
     val context = LocalContext.current
     
-    // Gender Selection State
+    // Gender Selection State — genderDialogShown survives recomposition & config changes
+    var genderDialogShown by rememberSaveable { mutableStateOf(false) }
     var showGenderDialog by remember { mutableStateOf(false) }
     
-    LaunchedEffect(user) {
-        val currentUser = user
-        if (currentUser != null && currentUser.gender == "UNSPECIFIED") {
-            showGenderDialog = true
-        }
+    // ONE-TIME check: only triggers the dialog if user.gender is UNSPECIFIED and hasn't been shown yet
+    LaunchedEffect(Unit) {
+        snapshotFlow { user }
+            .collect { currentUser ->
+                if (currentUser != null && currentUser.gender == "UNSPECIFIED" && !genderDialogShown) {
+                    showGenderDialog = true
+                }
+            }
     }
 
     // Media State
@@ -139,6 +145,7 @@ fun HomeScreen(
             GenderSelectionDialog(
                 onGenderSelected = { gender ->
                     viewModel.updateUserGender(gender)
+                    genderDialogShown = true  // Prevent dialog from ever re-appearing
                     showGenderDialog = false
                 }
             )
@@ -180,6 +187,15 @@ fun HomeScreen(
                 )
 
                 // REMOVED: PremiumPromoBanner and AdBanner as per user request
+
+                // Partner Info Bar — shows country flag + partially masked IP when connected
+                val foundState = uiState as? MatchUiState.Found
+                if (foundState != null && (foundState.partnerIp.isNotEmpty() || foundState.partnerCountryCode.isNotEmpty())) {
+                    PartnerInfoBar(
+                        partnerIp = foundState.partnerIp,
+                        partnerCountryCode = foundState.partnerCountryCode
+                    )
+                }
 
                 // 3. Chat Area
                 Box(modifier = Modifier.weight(1f)) {
@@ -440,10 +456,10 @@ fun VideoPlaceholderOverlay(partnerName: String) {
            }
            Spacer(Modifier.height(16.dp))
            Text(
-               "Connecting to $partnerName...",
-               color = Color.White.copy(alpha = 0.7f),
-               fontWeight = FontWeight.Bold
-           )
+                stringResource(R.string.connecting_to, partnerName),
+                color = Color.White.copy(alpha = 0.7f),
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
@@ -749,6 +765,65 @@ fun PremiumChatArea(messages: List<ChatMessage>, onMediaClick: (String, String) 
     ) {
         items(messages) { msg ->
             PremiumChatBubble(msg, onMediaClick = onMediaClick)
+        }
+    }
+}
+
+@Composable
+fun PartnerInfoBar(partnerIp: String, partnerCountryCode: String) {
+    // Lookup country flag from StaticData
+    val country = if (partnerCountryCode.isNotEmpty()) {
+        com.chatora.app.data.StaticData.getCountries().find { 
+            it.code.equals(partnerCountryCode, ignoreCase = true) 
+        }
+    } else null
+    
+    // Partially mask IP for privacy: show first and last octet, mask middle
+    val maskedIp = if (partnerIp.isNotEmpty()) {
+        val parts = partnerIp.split(".")
+        if (parts.size == 4) {
+            "${parts[0]}.***.***.${parts[3]}"
+        } else partnerIp
+    } else ""
+    
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.Center
+    ) {
+        if (country != null) {
+            Text(
+                text = country.flag,
+                fontSize = 14.sp
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = stringResource(country.nameRes),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontSize = 11.sp
+            )
+        }
+        if (maskedIp.isNotEmpty()) {
+            if (country != null) {
+                Spacer(Modifier.width(12.dp))
+                Text(
+                    text = "•",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    fontSize = 10.sp
+                )
+                Spacer(Modifier.width(12.dp))
+            }
+            Text(
+                text = maskedIp,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                fontSize = 11.sp,
+                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+            )
         }
     }
 }

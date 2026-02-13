@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">%1$s प्रीमियम अनलॉक करें</string>
     <string name="continue_button">जारी रखें</string>
     <string name="cancel_anytime">किसी भी समय रद्द करें। शर्तें लागू।</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">अपन लग चन</string>
+    <string name="gender_selection_desc">सबस अचछ मचग अनभव क लए कपय अपन लग चन इस बद म आसन स बदल नह ज सकत</string>
+    <string name="confirm_selection">चयन क पषट कर</string>
+    <string name="male">परष</string>
+    <string name="female">महल</string>
 </resources>

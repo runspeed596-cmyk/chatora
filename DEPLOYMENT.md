@@ -48,9 +48,13 @@ ssh root@172.86.95.177
 
 ### ساخت کاربر غیر root
 
+
+
 ```bash
 # روی سرور
 adduser minichat
+
+
 usermod -aG sudo minichat
 
 # کپی SSH key
@@ -309,8 +313,8 @@ sudo nano /etc/nginx/sites-available/minichat
 
 ```nginx
 # Rate limiting
-limit_req_zone $binary_remote_addr zone=api_limit:10m rate=10r/s;
-limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=3r/s;
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=30r/s;
+limit_req_zone $binary_remote_addr zone=auth_limit:10m rate=10r/s;
 
 # Upstream
 upstream minichat_api {
@@ -364,7 +368,8 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    # HSTS — فقط بعد از فعال‌سازی SSL فعال کنید:
+    # add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
 
     # فایل‌های آپلود شده
     location /api/files/ {

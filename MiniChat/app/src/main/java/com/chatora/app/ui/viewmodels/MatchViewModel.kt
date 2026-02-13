@@ -68,17 +68,35 @@ class MatchViewModel @Inject constructor(
         android.util.Log.d("MINICHAT_DEBUG", "MatchViewModel initialized")
         listenForEvents()
         
-        // AUTO-NEXT on Connection Failure
+        // AUTO-NEXT on Connection Failure / ICE Restart on Disconnected
         webRtcClient.onConnectionStateChanged = { state ->
             android.util.Log.d("MINICHAT_DEBUG", "WebRTC Connection State: $state")
-            if (state == org.webrtc.PeerConnection.PeerConnectionState.FAILED || 
-                state == org.webrtc.PeerConnection.PeerConnectionState.DISCONNECTED) {
-                android.util.Log.w("MINICHAT_DEBUG", "Connection lost/failed. Searching next...")
-                viewModelScope.launch {
-                    stopMatching()
-                    kotlinx.coroutines.delay(500)
-                    findMatch()
+            when (state) {
+                org.webrtc.PeerConnection.PeerConnectionState.DISCONNECTED -> {
+                    // ICE disconnected — try restarting ICE before giving up
+                    android.util.Log.w("MINICHAT_DEBUG", "Connection DISCONNECTED. Attempting ICE restart...")
+                    webRtcClient.restartIce()
+                    // Give ICE restart 8 seconds to recover, then auto-search-next
+                    viewModelScope.launch {
+                        kotlinx.coroutines.delay(8000)
+                        val currentState = _matchState.value
+                        if (currentState is MatchUiState.Found && !_remoteVideoReady.value) {
+                            android.util.Log.w("MINICHAT_DEBUG", "ICE restart failed. Searching next...")
+                            stopMatching()
+                            kotlinx.coroutines.delay(500)
+                            findMatch()
+                        }
+                    }
                 }
+                org.webrtc.PeerConnection.PeerConnectionState.FAILED -> {
+                    android.util.Log.w("MINICHAT_DEBUG", "Connection FAILED. Searching next...")
+                    viewModelScope.launch {
+                        stopMatching()
+                        kotlinx.coroutines.delay(500)
+                        findMatch()
+                    }
+                }
+                else -> { /* No action for other states */ }
             }
         }
         
@@ -209,16 +227,24 @@ class MatchViewModel @Inject constructor(
                 
                 // Create minimal user object for UI (fetching full details can happen later if needed)
                 val partnerUser = com.chatora.app.data.User(
-                    id = partnerId, // EXPECTS STRING
+                    id = partnerId,
                     username = partnerUsername,
-                    email = "", // Placeholder
+                    email = "",
                     karma = 0,
                     diamonds = 0,
                     country = com.chatora.app.data.Country("Unknown", R.string.all_countries, "❓"),
                     isPremium = false
                 )
+
+                // Parse partner IP and country from server response
+                val partnerIp = json.optString("partnerIp", "")
+                val partnerCountryCode = json.optString("partnerCountryCode", "")
                 
-                _matchState.value = MatchUiState.Found(partnerUser)
+                _matchState.value = MatchUiState.Found(
+                    partner = partnerUser,
+                    partnerIp = partnerIp,
+                    partnerCountryCode = partnerCountryCode
+                )
                 android.util.Log.d("MINICHAT_DEBUG", "UI State updated to Found")
 
                 // Subscribe to signaling channel
@@ -226,9 +252,9 @@ class MatchViewModel @Inject constructor(
                 chatSubscriptionId = repository.subscribe("/topic/chat/$currentMatchId")
 
                 if (initiator) {
-                    android.util.Log.d("MINICHAT_DEBUG", "Initiator: Waiting 3s before creating Offer (Race Condition Fix)")
-                    startConnectionTimeout() // Also timeout for initiator if Answer never comes?
-                    kotlinx.coroutines.delay(3000) 
+                    android.util.Log.d("MINICHAT_DEBUG", "Initiator: Waiting 1s before creating Offer")
+                    startConnectionTimeout()
+                    kotlinx.coroutines.delay(1000) 
                     android.util.Log.d("MINICHAT_DEBUG", "Initiator: Creating Offer now")
                     // ZERO DELAY: Connection is already created in findMatch()
                     webRtcClient.createOffer()
@@ -318,8 +344,8 @@ class MatchViewModel @Inject constructor(
         connectionTimeoutJob?.cancel()
         connectionTimeoutJob = viewModelScope.launch {
             try {
-                android.util.Log.d("MINICHAT_DEBUG", "Connection Timeout Started: 10s")
-                kotlinx.coroutines.delay(10000)
+                android.util.Log.d("MINICHAT_DEBUG", "Connection Timeout Started: 15s")
+                kotlinx.coroutines.delay(15000)
                 android.util.Log.e("MINICHAT_DEBUG", "Connection Timeout Reached! No Signal received.")
                 // Disconnect and search again
                 stopMatching()
@@ -508,6 +534,10 @@ data class ChatMessage(
 sealed class MatchUiState {
     object Idle : MatchUiState()
     object Searching : MatchUiState()
-    data class Found(val partner: User) : MatchUiState()
+    data class Found(
+        val partner: User,
+        val partnerIp: String = "",
+        val partnerCountryCode: String = ""
+    ) : MatchUiState()
     data class Error(val message: String) : MatchUiState()
 }

@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">%1$s Premium freischalten</string>
     <string name="continue_button">WEITER</string>
     <string name="cancel_anytime">Jederzeit kündbar. Es gelten Bedingungen.</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">Wähle dein Geschlecht</string>
+    <string name="gender_selection_desc">Für die beste Matching-Erfahrung wähle bitte dein Geschlecht. Dies kann später nicht einfach geändert werden.</string>
+    <string name="confirm_selection">Auswahl bestätigen</string>
+    <string name="male">Männlich</string>
+    <string name="female">Weiblich</string>
 </resources>

@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">Débloquer %1$s Premium</string>
     <string name="continue_button">CONTINUER</string>
     <string name="cancel_anytime">Annulez à tout moment. Des conditions s\'appliquent.</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">Sélectionnez votre genre</string>
+    <string name="gender_selection_desc">Pour une meilleure expérience de match, veuillez sélectionner votre genre. Il ne peut pas être modifié facilement par la suite.</string>
+    <string name="confirm_selection">Confirmer la sélection</string>
+    <string name="male">Homme</string>
+    <string name="female">Femme</string>
 </resources>

@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">Разблокировать %1$s Premium</string>
     <string name="continue_button">ПРОДОЛЖИТЬ</string>
     <string name="cancel_anytime">Отмена в любое время. Применяются условия.</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">Выберите ваш пол</string>
+    <string name="gender_selection_desc">Для лучшего опыта подбора выберите ваш пол. Позже изменить будет непросто.</string>
+    <string name="confirm_selection">Подтвердить выбор</string>
+    <string name="male">Мужской</string>
+    <string name="female">Женский</string>
 </resources>

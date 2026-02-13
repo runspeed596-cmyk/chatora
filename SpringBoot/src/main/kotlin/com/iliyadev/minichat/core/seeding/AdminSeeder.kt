@@ -42,9 +42,9 @@ class AdminSeeder(
     private fun seedPlans() {
         if (subscriptionPlanRepository.count() == 0L) {
             val plans = listOf(
-                com.iliyadev.minichat.domain.entities.SubscriptionPlan(name = "یک ماهه", months = 1, priceUsd = 2.99),
-                com.iliyadev.minichat.domain.entities.SubscriptionPlan(name = "سه ماهه", months = 3, priceUsd = 7.99),
-                com.iliyadev.minichat.domain.entities.SubscriptionPlan(name = "یک ساله", months = 12, priceUsd = 17.99)
+                com.iliyadev.minichat.domain.entities.SubscriptionPlan(name = "MONTHLY", months = 1, priceUsd = 2.99),
+                com.iliyadev.minichat.domain.entities.SubscriptionPlan(name = "QUARTERLY", months = 3, priceUsd = 7.99),
+                com.iliyadev.minichat.domain.entities.SubscriptionPlan(name = "YEARLY", months = 12, priceUsd = 17.99)
             )
             subscriptionPlanRepository.saveAll(plans)
             println(">>>> PRODUCTION: Default subscription plans seeded.")

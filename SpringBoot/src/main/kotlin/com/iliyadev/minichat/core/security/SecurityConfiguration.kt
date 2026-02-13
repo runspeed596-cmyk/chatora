@@ -36,16 +36,20 @@ class SecurityConfiguration(
             .headers { headers ->
                 headers.frameOptions { it.deny() }
                 headers.contentTypeOptions { }
+                // HSTS disabled — no SSL/domain configured yet.
+                // Re-enable after SSL is set up:
+                //   hsts.includeSubDomains(true)
+                //   hsts.maxAgeInSeconds(31536000)
+                //   hsts.preload(true)
                 headers.httpStrictTransportSecurity { hsts ->
-                    hsts.includeSubDomains(true)
-                    hsts.maxAgeInSeconds(31536000) // 1 year
-                    hsts.preload(true)
+                    hsts.disable()
                 }
                 headers.referrerPolicy { referrer ->
                     referrer.policy(ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
                 }
+                // Allow camera & microphone for WebRTC video chat
                 headers.permissionsPolicy { permissions ->
-                    permissions.policy("camera=(), microphone=(), geolocation=()")
+                    permissions.policy("camera=(self), microphone=(self), geolocation=()")
                 }
             }
             .authorizeHttpRequests { auth ->

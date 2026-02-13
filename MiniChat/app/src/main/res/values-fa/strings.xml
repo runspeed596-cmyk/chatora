@@ -334,4 +334,11 @@
     <string name="start_chatting">شروع چت</string>
     <string name="ad_tag">تبلیغات</string>
     <string name="unlock_no_ads">برای حذف تبلیغات اشتراک تهیه کنید</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">جنسیت خود را انتخاب کنید</string>
+    <string name="gender_selection_desc">برای بهترین تجربه مچ، لطفاً جنسیت خود را انتخاب کنید. تغییر آن بعداً آسان نیست.</string>
+    <string name="confirm_selection">تایید انتخاب</string>
+    <string name="male">مرد</string>
+    <string name="female">زن</string>
 </resources>

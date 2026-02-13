@@ -429,18 +429,18 @@ fun PremiumPlanCard(
             ) {
                 if (isActive) {
                      ContainerBadge(stringResource(R.string.active_check), Color(0xFF00E676))
-                } else if (plan.name.contains("Month", ignoreCase = true)) {
+                } else if (plan.months in 1..3) {
                      ContainerBadge(stringResource(R.string.badge_most_popular), Color(0xFFFFD700))
-                } else if (plan.name.contains("Year", ignoreCase = true)) {
+                } else if (plan.months >= 12) {
                      ContainerBadge(stringResource(R.string.badge_best_value), Color(0xFF00E676))
                 } else {
                     Spacer(Modifier.height(20.dp))
                 }
                 
-                val localizedPlanName = when {
-                    plan.name.equals("MONTHLY", ignoreCase = true) -> stringResource(R.string.plan_monthly)
-                    plan.name.equals("QUARTERLY", ignoreCase = true) -> stringResource(R.string.plan_quarterly)
-                    plan.name.equals("YEARLY", ignoreCase = true) -> stringResource(R.string.plan_yearly)
+                val localizedPlanName = when (plan.months) {
+                    1 -> stringResource(R.string.plan_monthly)
+                    3 -> stringResource(R.string.plan_quarterly)
+                    12 -> stringResource(R.string.plan_yearly)
                     else -> plan.name
                 }
 

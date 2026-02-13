@@ -62,9 +62,9 @@ class AuthController(
     }
 
     @PostMapping("/email/resend-code")
-    fun resendCode(@Valid @RequestBody request: EmailResendRequest): ApiResponse<String> {
-        emailAuthUseCase.resendCode(request.email)
-        return ApiResponse.success("CODE_SENT", "Verification code resent successfully")
+    fun resendCode(@Valid @RequestBody request: EmailResendRequest): ApiResponse<Map<String, String>> {
+        val code = emailAuthUseCase.resendCode(request.email)
+        return ApiResponse.success(mapOf("verificationCode" to code), "Verification code resent successfully")
     }
 
     @PostMapping("/refresh")

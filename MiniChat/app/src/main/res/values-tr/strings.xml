@@ -108,4 +108,11 @@
     <string name="premium_unlock_title">%1$s Premium Kilidini Aç</string>
     <string name="continue_button">DEVAM ET</string>
     <string name="cancel_anytime">İstediğiniz zaman iptal edin. Şartlar geçerlidir.</string>
+
+    <!-- Gender Selection -->
+    <string name="select_your_gender">Cinsiyetinizi seçin</string>
+    <string name="gender_selection_desc">En iyi eşleşme deneyimi için lütfen cinsiyetinizi seçin. Daha sonra kolayca değiştirilemez.</string>
+    <string name="confirm_selection">Seçimi onayla</string>
+    <string name="male">Erkek</string>
+    <string name="female">Kadın</string>
 </resources>

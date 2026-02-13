@@ -64,13 +64,13 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun resendCode(email: String): Result<String> {
+    override suspend fun resendCode(email: String): Result<Map<String, String>> {
         return try {
             val response = apiService.resendCode(EmailResendRequest(email = email))
             if (response.isSuccessful) {
                 val body = response.body()
-                if (body?.success == true) {
-                    Result.success(body.data ?: "Code sent")
+                if (body?.success == true && body.data != null) {
+                    Result.success(body.data)
                 } else {
                     val errorMsg = body?.error?.message ?: body?.message ?: "Unknown Error"
                     val errorCode = body?.error?.code
