@@ -219,9 +219,17 @@ class MatchService(
         removeFromPools(u2.userId)
 
         logger.info("MATCH! [${u1.username} <-> ${u2.username}]")
+        logger.info(">>> u1(${u1.username}): ip=${u1.ipAddress}, country=${u1.country}")
+        logger.info(">>> u2(${u2.username}): ip=${u2.ipAddress}, country=${u2.country}")
         
-        messagingTemplate.convertAndSendToUser(u1.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u2.userId.toString(), partnerUsername = u2.username, initiator = true, partnerIp = u2.ipAddress, partnerCountryCode = u2.country))
-        messagingTemplate.convertAndSendToUser(u2.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u1.userId.toString(), partnerUsername = u1.username, initiator = false, partnerIp = u1.ipAddress, partnerCountryCode = u1.country))
+        val event1 = MatchEvent(matchId = matchId, partnerId = u2.userId.toString(), partnerUsername = u2.username, initiator = true, partnerIp = u2.ipAddress, partnerCountryCode = u2.country)
+        val event2 = MatchEvent(matchId = matchId, partnerId = u1.userId.toString(), partnerUsername = u1.username, initiator = false, partnerIp = u1.ipAddress, partnerCountryCode = u1.country)
+        
+        logger.info(">>> Sending to ${u1.username}: partnerIp=${event1.partnerIp}, partnerCountryCode=${event1.partnerCountryCode}")
+        logger.info(">>> Sending to ${u2.username}: partnerIp=${event2.partnerIp}, partnerCountryCode=${event2.partnerCountryCode}")
+        
+        messagingTemplate.convertAndSendToUser(u1.username, "/queue/match", event1)
+        messagingTemplate.convertAndSendToUser(u2.username, "/queue/match", event2)
     }
 
     fun handleUserLeave(username: String, userId: String? = null, sessionId: String? = null) {

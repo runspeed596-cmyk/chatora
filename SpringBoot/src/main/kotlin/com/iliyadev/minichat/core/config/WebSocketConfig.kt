@@ -58,14 +58,33 @@ class WebSocketConfig(
             wsHandler: WebSocketHandler,
             attributes: MutableMap<String, Any>
         ): Boolean {
-                // Professional IP Extraction (Fulfills Point 1 of Fix Plan)
+                // Professional IP Extraction with full debug logging
                 val headers = request.headers
-                val ip = headers.getFirst("X-Forwarded-For")?.split(",")?.firstOrNull()?.trim()
-                    ?: headers.getFirst("X-Real-IP")
-                    ?: request.remoteAddress.hostString
+                
+                val xForwardedFor = headers.getFirst("X-Forwarded-For")
+                val xRealIp = headers.getFirst("X-Real-IP")
+                val remoteAddr = request.remoteAddress?.hostString
+                
+                // Also try Servlet-level access for edge cases
+                val servletRemoteAddr = if (request is ServletServerHttpRequest) {
+                    request.servletRequest.remoteAddr
+                } else null
+                
+                logger.info("=== WS Handshake IP Debug ===")
+                logger.info("X-Forwarded-For: $xForwardedFor")
+                logger.info("X-Real-IP: $xRealIp")
+                logger.info("remoteAddress.hostString: $remoteAddr")
+                logger.info("servletRequest.remoteAddr: $servletRemoteAddr")
+                
+                val ip = xForwardedFor?.split(",")?.firstOrNull()?.trim()
+                    ?: xRealIp
+                    ?: servletRemoteAddr
+                    ?: remoteAddr
+                    ?: "127.0.0.1"
                 
                 attributes["IP_ADDRESS"] = ip
-                logger.debug("Captured Handshake IP: $ip")
+                logger.info("Final Captured IP: $ip")
+                logger.info("=== End WS Handshake IP Debug ===")
             return true
         }
 

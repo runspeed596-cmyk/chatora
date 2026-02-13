@@ -53,6 +53,7 @@ class MatchController(
 
         // Professional Implementation: Use real IP from Stomp Headers
         val ipAddress = headerAccessor.getSessionAttributes()?.get("IP_ADDRESS") as? String ?: "127.0.0.1"
+        logger.info(">>> MatchController: username=$username, capturedIP=$ipAddress, sessionAttrs=${headerAccessor.getSessionAttributes()?.keys}")
         
         val myCountry = if (request.myCountry == "AUTO") {
              geoIPService.getCountryCode(ipAddress) 
