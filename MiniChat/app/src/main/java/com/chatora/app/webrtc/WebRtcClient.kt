@@ -45,6 +45,9 @@ class WebRtcClient @Inject constructor(
     private val pendingIceCandidates = mutableListOf<IceCandidate>()
     private var hasRemoteDescription = false
 
+    // Remote renderer reference — stored so onTrack can always find the active sink
+    private var remoteRenderer: SurfaceViewRenderer? = null
+
     private var audioDeviceModule: JavaAudioDeviceModule? = null
 
     init {
@@ -175,6 +178,13 @@ class WebRtcClient @Inject constructor(
             surface.setEnableHardwareScaler(true)
             surface.setMirror(false)
             surface.setScalingType(RendererCommon.ScalingType.SCALE_ASPECT_FILL)
+            // Store renderer so onTrack can find it
+            remoteRenderer = surface
+            // If track already arrived before UI was ready, bind immediately
+            remoteVideoTrack?.let { track ->
+                android.util.Log.d("WebRtcClient", "initRemoteSurface: Track already available, adding sink now")
+                track.addSink(surface)
+            }
         } catch (e: Exception) {
             android.util.Log.e("WebRtcClient", "Error initializing remote surface", e)
         }
@@ -259,6 +269,12 @@ class WebRtcClient @Inject constructor(
                 transceiver?.receiver?.track()?.let { track ->
                     if (track.kind() == "video") {
                         remoteVideoTrack = track as VideoTrack
+                        android.util.Log.d("WebRtcClient", "onTrack: Remote video track received. Renderer=${remoteRenderer != null}")
+                        // Always try to add sink to stored renderer
+                        remoteRenderer?.let { renderer ->
+                            android.util.Log.d("WebRtcClient", "onTrack: Adding sink to stored renderer")
+                            remoteVideoTrack!!.addSink(renderer)
+                        }
                         onRemoteVideoTrackReceived?.invoke(remoteVideoTrack!!)
                     }
                 }
@@ -362,6 +378,7 @@ class WebRtcClient @Inject constructor(
             peerConnection?.dispose()
             peerConnection = null
             remoteVideoTrack = null
+            remoteRenderer = null
             currentMatchId = null
             hasRemoteDescription = false
             pendingIceCandidates.clear()

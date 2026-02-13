@@ -98,19 +98,11 @@ fun HomeScreen(
     val primaryBlue = Color(0xFF4A76FD)
     val context = LocalContext.current
     
-    // Gender Selection State — genderDialogShown survives recomposition & config changes
+    // Gender Selection State — genderDialogShown persists across recomposition & config changes
     var genderDialogShown by rememberSaveable { mutableStateOf(false) }
-    var showGenderDialog by remember { mutableStateOf(false) }
     
-    // ONE-TIME check: only triggers the dialog if user.gender is UNSPECIFIED and hasn't been shown yet
-    LaunchedEffect(Unit) {
-        snapshotFlow { user }
-            .collect { currentUser ->
-                if (currentUser != null && currentUser.gender == "UNSPECIFIED" && !genderDialogShown) {
-                    showGenderDialog = true
-                }
-            }
-    }
+    // Derive dialog visibility directly — no LaunchedEffect, no snapshotFlow, no race conditions
+    val showGenderDialog = user != null && user?.gender == "UNSPECIFIED" && !genderDialogShown
 
     // Media State
     var selectedMediaUrl by remember { mutableStateOf<String?>(null) }
@@ -145,8 +137,7 @@ fun HomeScreen(
             GenderSelectionDialog(
                 onGenderSelected = { gender ->
                     viewModel.updateUserGender(gender)
-                    genderDialogShown = true  // Prevent dialog from ever re-appearing
-                    showGenderDialog = false
+                    genderDialogShown = true  // This automatically hides the dialog (derived val becomes false)
                 }
             )
         }
@@ -186,21 +177,13 @@ fun HomeScreen(
                     onCountryClick = { showCountrySheet = true }
                 )
 
-                // REMOVED: PremiumPromoBanner and AdBanner as per user request
-
-                // Partner Info Bar — shows country flag + partially masked IP when connected
-                val foundState = uiState as? MatchUiState.Found
-                if (foundState != null && (foundState.partnerIp.isNotEmpty() || foundState.partnerCountryCode.isNotEmpty())) {
-                    PartnerInfoBar(
-                        partnerIp = foundState.partnerIp,
-                        partnerCountryCode = foundState.partnerCountryCode
-                    )
-                }
-
                 // 3. Chat Area
                 Box(modifier = Modifier.weight(1f)) {
+                    val foundState = uiState as? MatchUiState.Found
                     PremiumChatArea(
                         messages = messages,
+                        partnerIp = foundState?.partnerIp ?: "",
+                        partnerCountryCode = foundState?.partnerCountryCode ?: "",
                         onMediaClick = { url, type ->
                             selectedMediaUrl = url
                             selectedMediaType = type
@@ -751,11 +734,18 @@ fun GenderOptionCard(
 }
 
 @Composable
-fun PremiumChatArea(messages: List<ChatMessage>, onMediaClick: (String, String) -> Unit = { _, _ -> }) {
+fun PremiumChatArea(
+    messages: List<ChatMessage>,
+    partnerIp: String = "",
+    partnerCountryCode: String = "",
+    onMediaClick: (String, String) -> Unit = { _, _ -> }
+) {
     val listState = rememberLazyListState()
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
+
+    val showPartnerInfo = partnerIp.isNotEmpty() || partnerCountryCode.isNotEmpty()
 
     LazyColumn(
         state = listState,
@@ -763,6 +753,12 @@ fun PremiumChatArea(messages: List<ChatMessage>, onMediaClick: (String, String) 
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = PaddingValues(bottom = 16.dp)
     ) {
+        // Compact partner info as first item in chat
+        if (showPartnerInfo) {
+            item(key = "partner_info") {
+                PartnerInfoBar(partnerIp = partnerIp, partnerCountryCode = partnerCountryCode)
+            }
+        }
         items(messages) { msg ->
             PremiumChatBubble(msg, onMediaClick = onMediaClick)
         }
@@ -1069,7 +1065,13 @@ fun PremiumControlSection(
                 .border(1.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(24.dp))
         ) {
             AndroidView(
-                factory = { ctx -> SurfaceViewRenderer(ctx).apply { setMirror(true); initLocalVideo(this) } },
+                factory = { ctx ->
+                    SurfaceViewRenderer(ctx).apply {
+                        setMirror(true)
+                        // Defer heavy camera init to next frame — prevents ANR
+                        post { initLocalVideo(this) }
+                    }
+                },
                 onRelease = { it.release() },
                 modifier = Modifier.fillMaxSize()
             )
