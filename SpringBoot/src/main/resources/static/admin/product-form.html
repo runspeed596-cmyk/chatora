@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت محصولات - پنل مدیریت</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>پنل مدیریت فروشگاه</h2>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html"><span>📊</span><span>داشبورد</span></a></li>
+                    <li><a href="products.html" class="active"><span>📦</span><span>محصولات</span></a></li>
+                    <li><a href="categories.html"><span>📂</span><span>دسته‌بندی‌ها</span></a></li>
+                    <li><a href="colors.html"><span>🎨</span><span>رنگ‌ها</span></a></li>
+                    <li><a href="sizes.html"><span>📏</span><span>سایزها</span></a></li>
+                    <li><a href="#" onclick="logout(); return false;"><span>🚪</span><span>خروج</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <h1 id="pageTitle">افزودن محصول جدید</h1>
+                <div class="user-menu">
+                    <span id="adminUsername">مدیر</span>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <form id="productForm">
+                    <div class="form-group">
+                        <label for="title">عنوان محصول *</label>
+                        <input type="text" id="title" name="title" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="description">توضیحات</label>
+                        <textarea id="description" name="description" rows="4"></textarea>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <div class="form-group" style="flex: 1;">
+                            <label for="price">قیمت (تومان) *</label>
+                            <input type="number" id="price" name="price" required min="0">
+                        </div>
+
+                        <div class="form-group" style="flex: 1;">
+                            <label for="discount">تخفیف (درصد)</label>
+                            <input type="number" id="discount" name="discount" min="0" max="100" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stockQuantity">موجودی انبار *</label>
+                        <input type="number" id="stockQuantity" name="stockQuantity" required min="0" value="0">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category">دسته‌بندی</label>
+                        <select id="category" name="category">
+                            <option value="">در حال بارگذاری...</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>رنگ‌ها</label>
+                        <div id="colorsCheckboxes" class="flex gap-2" style="flex-wrap: wrap;">
+                            در حال بارگذاری...
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>سایزها</label>
+                        <div id="sizesCheckboxes" class="flex gap-2" style="flex-wrap: wrap;">
+                            در حال بارگذاری...
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mainImageUrl">لینک تصویر اصلی *</label>
+                        <input type="url" id="mainImageUrl" name="mainImageUrl"
+                            placeholder="https://example.com/image.jpg" required dir="ltr">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="additionalImageUrls">لینک‌های تصاویر اضافی (هر لینک در یک خط)</label>
+                        <textarea id="additionalImageUrls" name="additionalImageUrls" rows="3"
+                            placeholder="https://example.com/image1.jpg&#10;https://example.com/image2.jpg"
+                            dir="ltr"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>پیش‌نمایش تصاویر</label>
+                        <div id="imagePreview" class="flex gap-2" style="flex-wrap: wrap;">
+                            <!-- Image previews will be loaded here -->
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="isActive" name="isActive" checked>
+                            <span>محصول فعال است</span>
+                        </label>
+                    </div>
+
+                    <div class="flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary" id="submitBtn">ذخیره محصول</button>
+                        <a href="products.html" class="btn btn-secondary">انصراف</a>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        checkAuth();
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const productId = urlParams.get('id');
+        const isEditMode = !!productId;
+
+        if (isEditMode) {
+            document.getElementById('pageTitle').textContent = 'ویرایش محصول';
+        }
+
+        let currentProduct = null;
+
+        async function loadCategories() {
+            const select = document.getElementById('category');
+            try {
+                const response = await apiRequest('/api/productCategory');
+                if (response && response.data) {
+                    select.innerHTML = '<option value="">انتخاب کنید...</option>';
+                    response.data.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat.id;
+                        option.textContent = cat.title;
+                        select.appendChild(option);
+                    });
+                } else {
+                    select.innerHTML = '<option value="">خطا در بارگذاری</option>';
+                }
+            } catch (error) {
+                console.error('Error loading categories:', error);
+                select.innerHTML = '<option value="">خطا در بارگذاری</option>';
+            }
+        }
+
+        async function loadColors() {
+            const container = document.getElementById('colorsCheckboxes');
+            try {
+                const response = await apiRequest('/api/color');
+                if (response && response.data) {
+                    container.innerHTML = '';
+                    if (response.data.length === 0) {
+                        container.innerHTML = 'هیچ رنگی یافت نشد';
+                    } else {
+                        response.data.forEach(color => {
+                            const label = document.createElement('label');
+                            label.style = 'display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px;';
+                            label.innerHTML = `
+                                    <input type="checkbox" name="colors" value="${color.id}">
+                                    <div style="width: 20px; height: 20px; border-radius: 4px; background: ${color.hexValue};"></div>
+                                    <span>${color.title}</span>
+                                `;
+                            container.appendChild(label);
+                        });
+                    }
+                } else {
+                    container.innerHTML = 'خطا در بارگذاری';
+                }
+            } catch (error) {
+                console.error('Error loading colors:', error);
+                container.innerHTML = 'خطا در بارگذاری';
+            }
+        }
+
+        async function loadSizes() {
+            const container = document.getElementById('sizesCheckboxes');
+            try {
+                const response = await apiRequest('/api/size');
+                if (response && response.data) {
+                    container.innerHTML = '';
+                    if (response.data.length === 0) {
+                        container.innerHTML = 'هیچ سایزی یافت نشد';
+                    } else {
+                        response.data.forEach(size => {
+                            const label = document.createElement('label');
+                            label.style = 'display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px;';
+                            label.innerHTML = `
+                                    <input type="checkbox" name="sizes" value="${size.id}">
+                                    <span>${size.title}</span>
+                                `;
+                            container.appendChild(label);
+                        });
+                    }
+                } else {
+                    container.innerHTML = 'خطا در بارگذاری';
+                }
+            } catch (error) {
+                console.error('Error loading sizes:', error);
+                container.innerHTML = 'خطا در بارگذاری';
+            }
+        }
+
+        async function loadProduct() {
+            if (!productId) return;
+            try {
+                const response = await apiRequest(`/api/product/${productId}`);
+                if (response && response.data && response.data.length > 0) {
+                    currentProduct = response.data[0];
+
+                    document.getElementById('title').value = currentProduct.title || '';
+                    document.getElementById('description').value = currentProduct.description || '';
+                    document.getElementById('price').value = currentProduct.price || 0;
+                    document.getElementById('discount').value = currentProduct.discount || 0;
+                    document.getElementById('stockQuantity').value = currentProduct.stockQuantity || 0;
+                    document.getElementById('isActive').checked = currentProduct.isActive !== false;
+
+                    if (currentProduct.category) {
+                        document.getElementById('category').value = currentProduct.category.id;
+                    }
+
+                    if (currentProduct.colors) {
+                        currentProduct.colors.forEach(color => {
+                            const checkbox = document.querySelector(`input[name="colors"][value="${color.id}"]`);
+                            if (checkbox) checkbox.checked = true;
+                        });
+                    }
+
+                    if (currentProduct.sizes) {
+                        currentProduct.sizes.forEach(size => {
+                            const checkbox = document.querySelector(`input[name="sizes"][value="${size.id}"]`);
+                            if (checkbox) checkbox.checked = true;
+                        });
+                    }
+
+                    // Populate images
+                    if (currentProduct.image) {
+                        document.getElementById('mainImageUrl').value = currentProduct.image;
+                    }
+
+                    if (currentProduct.images && currentProduct.images.length > 0) {
+                        const otherImages = currentProduct.images
+                            .filter(img => img.imageUrl !== currentProduct.image)
+                            .map(img => img.imageUrl)
+                            .join('\n');
+                        document.getElementById('additionalImageUrls').value = otherImages;
+                    }
+
+                    updateImagePreview();
+                }
+            } catch (error) {
+                showNotification('خطا در بارگذاری محصول', 'error');
+                console.error('Error:', error);
+            }
+        }
+
+        function updateImagePreview() {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+
+            const mainUrl = document.getElementById('mainImageUrl').value;
+            if (mainUrl) {
+                addImageToPreview(mainUrl, true);
+            }
+
+            const additionalUrls = document.getElementById('additionalImageUrls').value.split('\n');
+            additionalUrls.forEach(url => {
+                if (url && url.trim()) {
+                    addImageToPreview(url.trim(), false);
+                }
+            });
+        }
+
+        function addImageToPreview(url, isMain) {
+            const preview = document.getElementById('imagePreview');
+            const div = document.createElement('div');
+            div.className = 'preview-item';
+            div.style = 'position: relative; width: 100px; height: 100px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden;';
+
+            const img = document.createElement('img');
+            img.src = url;
+            img.style = 'width: 100%; height: 100%; object-fit: cover;';
+            img.onerror = function () {
+                this.src = 'https://via.placeholder.com/100?text=Error';
+            };
+
+            div.appendChild(img);
+
+            if (isMain) {
+                const badge = document.createElement('span');
+                badge.textContent = 'اصلی';
+                badge.style = 'position: absolute; bottom: 0; right: 0; background: rgba(0, 0, 0, 0.7); color: white; font-size: 10px; padding: 2px 4px;';
+                div.appendChild(badge);
+            }
+
+            preview.appendChild(div);
+        }
+
+        document.getElementById('mainImageUrl').addEventListener('input', updateImagePreview);
+        document.getElementById('additionalImageUrls').addEventListener('input', updateImagePreview);
+
+        document.getElementById('productForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            setLoading(submitBtn, true);
+
+            try {
+                const selectedColors = Array.from(document.querySelectorAll('input[name="colors"]:checked'))
+                    .map(cb => ({
+                        id: parseInt(cb.value)
+                    }));
+
+                const selectedSizes = Array.from(document.querySelectorAll('input[name="sizes"]:checked'))
+                    .map(cb => ({
+                        id: parseInt(cb.value)
+                    }));
+
+                const categoryId = document.getElementById('category').value;
+                const category = categoryId ? {
+                    id: parseInt(categoryId)
+                } : null;
+
+                const mainImageUrl = document.getElementById('mainImageUrl').value;
+                const additionalImageUrls = document.getElementById('additionalImageUrls').value
+                    .split('\n')
+                    .map(url => url.trim())
+                    .filter(url => url.length > 0);
+
+                const imagesList = [];
+                if (mainImageUrl) {
+                    imagesList.push({
+                        imageUrl: mainImageUrl
+                    });
+                }
+                additionalImageUrls.forEach(url => {
+                    imagesList.push({
+                        imageUrl: url
+                    });
+                });
+
+                const productData = {
+                    title: document.getElementById('title').value,
+                    description: document.getElementById('description').value,
+                    price: parseInt(document.getElementById('price').value),
+                    discount: parseInt(document.getElementById('discount').value),
+                    stockQuantity: parseInt(document.getElementById('stockQuantity').value),
+                    isActive: document.getElementById('isActive').checked,
+                    category: category,
+                    colors: selectedColors.length > 0 ? selectedColors : null,
+                    sizes: selectedSizes.length > 0 ? selectedSizes : null,
+                    addDate: new Date().toISOString(),
+                    visitCount: 0,
+                    image: mainImageUrl,
+                    images: imagesList.length > 0 ? imagesList : null
+                };
+
+                let response;
+                if (isEditMode) {
+                    response = await apiRequest(`/api/admin/product/${productId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(productData)
+                    });
+                } else {
+                    response = await apiRequest('/api/admin/product', {
+                        method: 'POST',
+                        body: JSON.stringify(productData)
+                    });
+                }
+
+                if (response && (response.status === 'OK' || response.status === 'CREATED')) {
+                    showNotification('محصول با موفقیت ذخیره شد', 'success');
+                    setTimeout(() => {
+                        window.location.href = 'products.html';
+                    }, 1500);
+                } else {
+                    showNotification('خطا در ذخیره محصول', 'error');
+                }
+            } catch (error) {
+                showNotification('خطا در ذخیره محصول', 'error');
+                console.error('Error:', error);
+            } finally {
+                setLoading(submitBtn, false);
+            }
+        });
+
+        loadCategories();
+        loadColors();
+        loadSizes();
+        if (isEditMode) {
+            setTimeout(loadProduct, 500);
+        }
+    </script>
+</body>
+
+</html>

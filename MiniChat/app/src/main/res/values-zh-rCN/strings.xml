@@ -1,0 +1,111 @@
+﻿<resources>
+    <string name="app_name">Chatora</string>
+    <string name="welcome_back">欢迎回来</string>
+    <string name="create_account">创建账号</string>
+    <string name="login_continue">登录以继续</string>
+    <string name="join_community">立即加入社区</string>
+    <string name="username">用户名</string>
+    <string name="email">邮箱</string>
+    <string name="password">密码</string>
+    <string name="login">登录</string>
+    <string name="sign_up">注册</string>
+    <string name="no_account">没有账号？注册</string>
+    <string name="have_account">已有账号？登录</string>
+    <string name="google_sign_in">通过 Google 继续</string>
+    <string name="or"> 或 </string>
+    <string name="error">错误</string>
+    <string name="ok">确定</string>
+    <string name="verify_email">验证邮箱</string>
+    <string name="verify_code_sent">验证码已发送至</string>
+    <string name="verification_code">验证码</string>
+    <string name="verify">验证</string>
+    <string name="resend_code">重新发送验证码</string>
+    
+    <!-- Settings -->
+    <string name="settings">设置</string>
+    <string name="back">返回</string>
+    <string name="general">常规</string>
+    <string name="notifications">通知</string>
+    <string name="dark_mode">深色模式</string>
+    <string name="account">账号</string>
+    <string name="logout_clear_data">退出 / 清除数据</string>
+    
+    <!-- Home -->
+    <string name="guest">访客</string>
+    <string name="karma">人品值: %1$d</string>
+    <string name="searching_in">搜索地点</string>
+    <string name="start_matching">开始匹配</string>
+    <string name="select_country">选择国家</string>
+    <string name="get_premium">获取会员</string>
+    <string name="premium_badge">会员</string>
+    <string name="gender_label">性别: %1$s</string>
+    <string name="gender_all">全部</string>
+    <string name="gender_male">男</string>
+    <string name="gender_female">女</string>
+    <string name="start_button">开始</string>
+    <string name="find_next_button">下一个</string>
+    <string name="say_hello_hint">打个招呼...</string>
+    <string name="connected_watermark">已连接</string>
+    <string name="minichat_logo_text">C H A T O R A</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">欢迎来到 Chatora</string>
+    <string name="onboarding_desc_1">与世界各地的随机用户联系。</string>
+    <string name="onboarding_title_2">安全可靠</string>
+    <string name="onboarding_desc_2">您的安全是我们的首要任务。</string>
+    <string name="onboarding_title_3">开始匹配</string>
+    <string name="onboarding_desc_3">准备好结识新朋友了吗？开始吧！</string>
+    <string name="get_started">开始</string>
+    <string name="next">下一步</string>
+    <string name="permissions_required">需要权限</string>
+    <string name="permissions_desc">Chatora 需要访问您的摄像头和麦克风。</string>
+    <string name="grant_permissions">授予权限</string>
+    <string name="permissions_granted">权限已授予！正在跳转...</string>
+
+    <!-- Matching -->
+    <string name="finding_someone">正在寻找...</string>
+    <string name="match_found">找到匹配！</string>
+    <string name="retry">重试</string>
+    <string name="cancel">取消</string>
+    <string name="stop">停止</string>
+    <string name="searching_for_partners">正在搜索伙伴...</string>
+    <string name="searching_title">搜索中...</string>
+    <string name="searching_subtitle">正在为您寻找特别的人</string>
+    <string name="no_partners_found">暂未找到伙伴。请重试。</string>
+    <string name="message_hint">输入消息...</string>
+    <string name="connecting_to">正在连接到 %1$s...</string>
+
+    <!-- Video Call -->
+    <string name="switch_camera">切换摄像头</string>
+    <string name="end_call">结束通话</string>
+
+    <!-- Report -->
+    <string name="report_user">举报用户</string>
+    <string name="report_reason_prompt">为什么举报此用户？</string>
+    <string name="report_reason_inappropriate">不当行为</string>
+    <string name="report_reason_spam">垃圾信息 / 机器人</string>
+    <string name="report_reason_harassment">骚扰</string>
+    <string name="report_reason_other">其他</string>
+    <string name="report_details_label">详细信息（可选）</string>
+    <string name="submit_report">提交举报</string>
+
+    <!-- Premium -->
+    <string name="premium_title">解锁全部</string>
+    <string name="premium_desc">无限使用所有功能</string>
+    <string name="premium_feature_1">按性别过滤（男/女）</string>
+    <string name="premium_feature_2">按国家过滤（任意地点）</string>
+    <string name="premium_feature_3">移除所有广告</string>
+    <string name="premium_feature_4">快速验证徽章</string>
+    <string name="subscribe_now">立即订阅</string>
+    <string name="restore_purchase">恢复购买</string>
+    <string name="plan_monthly">按月</string>
+    <string name="plan_yearly">按年</string>
+    <string name="plan_quarterly">按季度</string>
+    <string name="currently_active">当前有效</string>
+    <string name="active_check">✓ 有效</string>
+    <string name="best_value">超值</string>
+    <string name="per_period">按周期</string>
+    <string name="premium_unlock_title">解锁 %1$s 会员</string>
+    <string name="continue_button">继续</string>
+    <string name="cancel_anytime">随时取消。适用条款。</string>
+</resources>

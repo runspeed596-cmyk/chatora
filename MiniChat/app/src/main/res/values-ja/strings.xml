@@ -1,0 +1,111 @@
+﻿<resources>
+    <string name="app_name">Chatora</string>
+    <string name="welcome_back">お帰りなさい</string>
+    <string name="create_account">アカウント作成</string>
+    <string name="login_continue">ログインして続行</string>
+    <string name="join_community">今すぐコミュニティに参加</string>
+    <string name="username">ユーザー名</string>
+    <string name="email">メールアドレス</string>
+    <string name="password">パスワード</string>
+    <string name="login">ログイン</string>
+    <string name="sign_up">登録</string>
+    <string name="no_account">アカウントをお持ちでないですか？ 登録</string>
+    <string name="have_account">すでにアカウントをお持ちですか？ ログイン</string>
+    <string name="google_sign_in">Googleで続行</string>
+    <string name="or"> または </string>
+    <string name="error">エラー</string>
+    <string name="ok">OK</string>
+    <string name="verify_email">メールを確認</string>
+    <string name="verify_code_sent">確認コードが送信されました：</string>
+    <string name="verification_code">確認コード</string>
+    <string name="verify">確認</string>
+    <string name="resend_code">コードを再送信</string>
+    
+    <!-- Settings -->
+    <string name="settings">設定</string>
+    <string name="back">戻る</string>
+    <string name="general">一般</string>
+    <string name="notifications">通知</string>
+    <string name="dark_mode">ダークモード</string>
+    <string name="account">アカウント</string>
+    <string name="logout_clear_data">ログアウト / データを消去</string>
+    
+    <!-- Home -->
+    <string name="guest">ゲスト</string>
+    <string name="karma">カルマ: %1$d</string>
+    <string name="searching_in">検索場所</string>
+    <string name="start_matching">マッチング開始</string>
+    <string name="select_country">国を選択</string>
+    <string name="get_premium">プレミアムを取得</string>
+    <string name="premium_badge">プレミアム</string>
+    <string name="gender_label">性別: %1$s</string>
+    <string name="gender_all">すべて</string>
+    <string name="gender_male">男性</string>
+    <string name="gender_female">女性</string>
+    <string name="start_button">開始</string>
+    <string name="find_next_button">次へ</string>
+    <string name="say_hello_hint">こんにちはと言ってみよう...</string>
+    <string name="connected_watermark">接続済み</string>
+    <string name="minichat_logo_text">C H A T O R A</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Chatoraへようこそ</string>
+    <string name="onboarding_desc_1">世界中のランダムな人々とつながりましょう。</string>
+    <string name="onboarding_title_2">安全・安心</string>
+    <string name="onboarding_desc_2">あなたの安全を最優先します。</string>
+    <string name="onboarding_title_3">マッチングを開始</string>
+    <string name="onboarding_desc_3">新しい出会いの準備はいいですか？ さあ始めましょう！</string>
+    <string name="get_started">始める</string>
+    <string name="next">次へ</string>
+    <string name="permissions_required">許可が必要です</string>
+    <string name="permissions_desc">Chatoraはカメラとマイクへのアクセス許可が必要です。</string>
+    <string name="grant_permissions">許可する</string>
+    <string name="permissions_granted">許可されました！ 移動中...</string>
+
+    <!-- Matching -->
+    <string name="finding_someone">探しています...</string>
+    <string name="match_found">マッチしました！</string>
+    <string name="retry">再試行</string>
+    <string name="cancel">キャンセル</string>
+    <string name="stop">停止</string>
+    <string name="searching_for_partners">パートナーを探しています...</string>
+    <string name="searching_title">検索中...</string>
+    <string name="searching_subtitle">あなたにぴったりの相手を探しています</string>
+    <string name="no_partners_found">現在パートナーが見つかりません。再試行してください。</string>
+    <string name="message_hint">メッセージを入力...</string>
+    <string name="connecting_to">%1$s に接続中...</string>
+
+    <!-- Video Call -->
+    <string name="switch_camera">カメラ切り替え</string>
+    <string name="end_call">通話終了</string>
+
+    <!-- Report -->
+    <string name="report_user">ユーザーを報告</string>
+    <string name="report_reason_prompt">このユーザーを報告する理由は何ですか？</string>
+    <string name="report_reason_inappropriate">不適切な言動</string>
+    <string name="report_reason_spam">スパム / ボット</string>
+    <string name="report_reason_harassment">嫌がらせ</string>
+    <string name="report_reason_other">その他</string>
+    <string name="report_details_label">追加の詳細（任意）</string>
+    <string name="submit_report">報告を送信</string>
+
+    <!-- Premium -->
+    <string name="premium_title">すべてをアンロック</string>
+    <string name="premium_desc">すべての機能に無制限アクセス</string>
+    <string name="premium_feature_1">性別でフィルター（男/女）</string>
+    <string name="premium_feature_2">国でフィルター（どこでも）</string>
+    <string name="premium_feature_3">広告をすべて削除</string>
+    <string name="premium_feature_4">高速認証バッジ</string>
+    <string name="subscribe_now">今すぐ登録</string>
+    <string name="restore_purchase">購入を復元</string>
+    <string name="plan_monthly">月額</string>
+    <string name="plan_yearly">年額</string>
+    <string name="plan_quarterly">四半期ごと</string>
+    <string name="currently_active">現在有効</string>
+    <string name="active_check">✓ 有効</string>
+    <string name="best_value">ベストバリュー</string>
+    <string name="per_period">期間ごと</string>
+    <string name="premium_unlock_title">%1$s プレミアムをアンロック</string>
+    <string name="continue_button">続行</string>
+    <string name="cancel_anytime">いつでもキャンセル可能。規約が適用されます。</string>
+</resources>

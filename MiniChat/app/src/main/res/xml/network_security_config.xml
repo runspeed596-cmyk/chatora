@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration for MiniChat
+    - Production: HTTPS only, certificate pinning
+    - Debug: Allow cleartext for local dev servers
+-->
+<network-security-config>
+
+    <!-- Base config: block cleartext traffic globally -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Production server: pin certificates -->
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">46.249.100.239</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+        <!--
+            Certificate pinning: Replace with your actual certificate SHA-256 pins.
+            Generate pin with:
+              openssl s_client -connect 46.249.100.239:443 | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+            Add a backup pin from your CA's intermediate certificate.
+        -->
+        <!-- Uncomment when you have your SSL certificate:
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">REPLACE_WITH_PRIMARY_PIN=</pin>
+            <pin digest="SHA-256">REPLACE_WITH_BACKUP_PIN=</pin>
+        </pin-set>
+        -->
+    </domain-config>
+
+    <!-- Debug overrides: allow cleartext for local development -->
+    <debug-overrides>
+        <trust-anchors>
+            <certificates src="user" />
+            <certificates src="system" />
+        </trust-anchors>
+    </debug-overrides>
+
+</network-security-config>

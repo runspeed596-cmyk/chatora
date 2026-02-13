@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت رنگ‌ها - پنل مدیریت</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>پنل مدیریت فروشگاه</h2>
+            </div>
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html"><span>📊</span><span>داشبورد</span></a></li>
+                    <li><a href="products.html"><span>📦</span><span>محصولات</span></a></li>
+                    <li><a href="categories.html"><span>📂</span><span>دسته‌بندی‌ها</span></a></li>
+                    <li><a href="colors.html" class="active"><span>🎨</span><span>رنگ‌ها</span></a></li>
+                    <li><a href="sizes.html"><span>📏</span><span>سایزها</span></a></li>
+                    <li><a href="#" onclick="logout(); return false;"><span>🚪</span><span>خروج</span></a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <h1>مدیریت رنگ‌ها</h1>
+                <div class="user-menu">
+                    <span id="adminUsername">مدیر</span>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="content-header">
+                    <h2>لیست رنگ‌ها</h2>
+                    <button onclick="openAddModal()" class="btn btn-primary">افزودن رنگ جدید</button>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>شناسه</th>
+                            <th>نام رنگ</th>
+                            <th>کد رنگ</th>
+                            <th>پیش‌نمایش</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="colorsTable">
+                        <tr>
+                            <td colspan="5" class="text-center">در حال بارگذاری...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add/Edit Modal -->
+    <div id="colorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">افزودن رنگ</h2>
+                <button class="close-modal" onclick="closeModal('colorModal')">×</button>
+            </div>
+            <form id="colorForm">
+                <input type="hidden" id="colorId">
+                <div class="form-group">
+                    <label for="title">نام رنگ *</label>
+                    <input type="text" id="title" required>
+                </div>
+                <div class="form-group">
+                    <label for="hexValue">کد رنگ (HEX) *</label>
+                    <div class="flex gap-2">
+                        <input type="text" id="hexValue" required placeholder="#000000" pattern="#[0-9A-Fa-f]{6}">
+                        <input type="color" id="colorPicker" onchange="updateHexValue(this.value)">
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary" id="submitBtn">ذخیره</button>
+                    <button type="button" onclick="closeModal('colorModal')" class="btn btn-secondary">انصراف</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        checkAuth();
+
+        function updateHexValue(value) {
+            document.getElementById('hexValue').value = value;
+        }
+
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = 'افزودن رنگ';
+            document.getElementById('colorForm').reset();
+            document.getElementById('colorId').value = '';
+            document.getElementById('hexValue').value = '#000000';
+            document.getElementById('colorPicker').value = '#000000';
+            openModal('colorModal');
+        }
+
+        async function loadColors() {
+            const tableBody = document.getElementById('colorsTable');
+            try {
+                const response = await apiRequest('/api/color');
+
+                if (!response || !response.data) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center">خطا در دریافت داده‌ها</td></tr>';
+                    return;
+                }
+
+                if (response.data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center">هیچ رنگی یافت نشد</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = '';
+                response.data.forEach(color => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${color.id}</td>
+                        <td>${color.title}</td>
+                        <td>${color.hexValue}</td>
+                        <td><div style="width: 40px; height: 25px; background: ${color.hexValue}; border-radius: 4px; border: 1px solid #ddd;"></div></td>
+                        <td>
+                            <button onclick="editColor(${color.id})" class="btn btn-sm btn-secondary">ویرایش</button>
+                            <button onclick="deleteColor(${color.id})" class="btn btn-sm btn-danger">حذف</button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading colors:', error);
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center">خطا در بارگذاری رنگ‌ها</td></tr>';
+            }
+        }
+
+        async function editColor(id) {
+            try {
+                const response = await apiRequest(`/api/color/${id}`);
+                if (response && response.data && response.data.length > 0) {
+                    const color = response.data[0];
+                    document.getElementById('modalTitle').textContent = 'ویرایش رنگ';
+                    document.getElementById('colorId').value = color.id;
+                    document.getElementById('title').value = color.title;
+                    document.getElementById('hexValue').value = color.hexValue;
+                    document.getElementById('colorPicker').value = color.hexValue;
+                    openModal('colorModal');
+                }
+            } catch (error) {
+                showNotification('خطا در بارگذاری رنگ', 'error');
+            }
+        }
+
+        async function deleteColor(id) {
+            if (!confirmAction('آیا از حذف این رنگ اطمینان دارید؟')) return;
+
+            try {
+                const response = await apiRequest(`/api/admin/color/${id}`, { method: 'DELETE' });
+                if (response && response.status === 'OK') {
+                    showNotification('رنگ حذف شد', 'success');
+                    loadColors();
+                } else {
+                    showNotification('خطا در حذف', 'error');
+                }
+            } catch (error) {
+                showNotification('خطا در حذف', 'error');
+            }
+        }
+
+        document.getElementById('colorForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            setLoading(submitBtn, true);
+
+            const id = document.getElementById('colorId').value;
+            const data = {
+                title: document.getElementById('title').value,
+                hexValue: document.getElementById('hexValue').value
+            };
+
+            try {
+                let response;
+                if (id) {
+                    response = await apiRequest(`/api/admin/color/${id}`, {
+                        method: 'PUT',
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    response = await apiRequest('/api/admin/color', {
+                        method: 'POST',
+                        body: JSON.stringify(data)
+                    });
+                }
+
+                if (response && (response.status === 'OK' || response.status === 'CREATED')) {
+                    showNotification('رنگ با موفقیت ذخیره شد', 'success');
+                    closeModal('colorModal');
+                    loadColors();
+                } else {
+                    showNotification('خطا در ذخیره', 'error');
+                }
+            } catch (error) {
+                showNotification('خطا در ذخیره', 'error');
+            } finally {
+                setLoading(submitBtn, false);
+            }
+        });
+
+        loadColors();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,111 @@
+﻿<resources>
+    <string name="app_name">Chatora</string>
+    <string name="welcome_back">Bienvenido de nuevo</string>
+    <string name="create_account">Crear cuenta</string>
+    <string name="login_continue">Inicia sesión para continuar</string>
+    <string name="join_community">Únete a la comunidad hoy</string>
+    <string name="username">Nombre de usuario</string>
+    <string name="email">Correo electrónico</string>
+    <string name="password">Contraseña</string>
+    <string name="login">Iniciar sesión</string>
+    <string name="sign_up">Registrarse</string>
+    <string name="no_account">¿No tienes cuenta? Registrate</string>
+    <string name="have_account">¿Ya tienes cuenta? Inicia sesión</string>
+    <string name="google_sign_in">Continuar con Google</string>
+    <string name="or"> O </string>
+    <string name="error">Error</string>
+    <string name="ok">OK</string>
+    <string name="verify_email">Verificar correo</string>
+    <string name="verify_code_sent">Se ha enviado un código a</string>
+    <string name="verification_code">Código de verificación</string>
+    <string name="verify">Verificar</string>
+    <string name="resend_code">Reenviar código</string>
+    
+    <!-- Settings -->
+    <string name="settings">Ajustes</string>
+    <string name="back">Atrás</string>
+    <string name="general">General</string>
+    <string name="notifications">Notificaciones</string>
+    <string name="dark_mode">Modo oscuro</string>
+    <string name="account">Cuenta</string>
+    <string name="logout_clear_data">Cerrar sesión / Borrar datos</string>
+    
+    <!-- Home -->
+    <string name="guest">Invitado</string>
+    <string name="karma">Karma: %1$d</string>
+    <string name="searching_in">Buscando en</string>
+    <string name="start_matching">Empezar matching</string>
+    <string name="select_country">Seleccionar país</string>
+    <string name="get_premium">Obtener Premium</string>
+    <string name="premium_badge">Premium</string>
+    <string name="gender_label">GÉNERO: %1$s</string>
+    <string name="gender_all">Todos</string>
+    <string name="gender_male">Hombre</string>
+    <string name="gender_female">Mujer</string>
+    <string name="start_button">INICIAR</string>
+    <string name="find_next_button">SIGUIENTE</string>
+    <string name="say_hello_hint">Di hola...</string>
+    <string name="connected_watermark">CONECTADO</string>
+    <string name="minichat_logo_text">C H A T O R A</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Bienvenido a Chatora</string>
+    <string name="onboarding_desc_1">Conecta con personas de todo el mundo.</string>
+    <string name="onboarding_title_2">Seguro y confiable</string>
+    <string name="onboarding_desc_2">Priorizamos tu seguridad.</string>
+    <string name="onboarding_title_3">Empezar matching</string>
+    <string name="onboarding_desc_3">¿Listo para conocer a alguien nuevo? ¡Vamos!</string>
+    <string name="get_started">Empezar</string>
+    <string name="next">Siguiente</string>
+    <string name="permissions_required">Permisos requeridos</string>
+    <string name="permissions_desc">Chatora necesita acceso a tu cámara y micrófono.</string>
+    <string name="grant_permissions">Conceder permisos</string>
+    <string name="permissions_granted">¡Permisos concedidos! Redirigiendo...</string>
+
+    <!-- Matching -->
+    <string name="finding_someone">Buscando a alguien...</string>
+    <string name="match_found">¡Match encontrado!</string>
+    <string name="retry">Reintentar</string>
+    <string name="cancel">Cancelar</string>
+    <string name="stop">Parar</string>
+    <string name="searching_for_partners">Buscando compañeros...</string>
+    <string name="searching_title">Buscando...</string>
+    <string name="searching_subtitle">Buscando a alguien especial para ti</string>
+    <string name="no_partners_found">No se encontraron compañeros. Por favor, intenta de nuevo.</string>
+    <string name="message_hint">Escribe un mensaje...</string>
+    <string name="connecting_to">Conectando a %1$s...</string>
+
+    <!-- Video Call -->
+    <string name="switch_camera">Cambiar cámara</string>
+    <string name="end_call">Finalizar llamada</string>
+
+    <!-- Report -->
+    <string name="report_user">Reportar usuario</string>
+    <string name="report_reason_prompt">¿Por qué reportas a este usuario?</string>
+    <string name="report_reason_inappropriate">Comportamiento inapropiado</string>
+    <string name="report_reason_spam">Spam / Bot</string>
+    <string name="report_reason_harassment">Acoso</string>
+    <string name="report_reason_other">Otro</string>
+    <string name="report_details_label">Detalles adicionales (opcional)</string>
+    <string name="submit_report">Enviar reporte</string>
+
+    <!-- Premium -->
+    <string name="premium_title">Desbloquear todo</string>
+    <string name="premium_desc">Acceso ilimitado a todas las funciones</string>
+    <string name="premium_feature_1">Filtrar por género (M/F)</string>
+    <string name="premium_feature_2">Filtrar por país (Cualquiera)</string>
+    <string name="premium_feature_3">Eliminar todos los anuncios</string>
+    <string name="premium_feature_4">Insignia de verificación rápida</string>
+    <string name="subscribe_now">Suscribirse ahora</string>
+    <string name="restore_purchase">Restaurar compras</string>
+    <string name="plan_monthly">Mensual</string>
+    <string name="plan_yearly">Anual</string>
+    <string name="plan_quarterly">Trimestral</string>
+    <string name="currently_active">Actualmente activo</string>
+    <string name="active_check">✓ ACTIVO</string>
+    <string name="best_value">Mejor valor</string>
+    <string name="per_period">por periodo</string>
+    <string name="premium_unlock_title">Desbloquear %1$s Premium</string>
+    <string name="continue_button">CONTINUAR</string>
+    <string name="cancel_anytime">Cancela en cualquier momento. Se aplican términos.</string>
+</resources>

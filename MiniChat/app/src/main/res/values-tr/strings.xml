@@ -1,0 +1,111 @@
+﻿<resources>
+    <string name="app_name">Chatora</string>
+    <string name="welcome_back">Tekrar Hoş Geldiniz</string>
+    <string name="create_account">Hesap Oluştur</string>
+    <string name="login_continue">Devam etmek için giriş yapın</string>
+    <string name="join_community">Topluluğa bugün katılın</string>
+    <string name="username">Kullanıcı Adı</string>
+    <string name="email">E-posta</string>
+    <string name="password">Şifre</string>
+    <string name="login">Giriş Yap</string>
+    <string name="sign_up">Kaydol</string>
+    <string name="no_account">Hesabınız yok mu? Kaydolun</string>
+    <string name="have_account">Zaten hesabınız var mı? Giriş yapın</string>
+    <string name="google_sign_in">Google ile devam et</string>
+    <string name="or"> VEYA </string>
+    <string name="error">Hata</string>
+    <string name="ok">Tamam</string>
+    <string name="verify_email">E-posta Doğrula</string>
+    <string name="verify_code_sent">Doğrulama kodu şuraya gönderildi:</string>
+    <string name="verification_code">Doğrulama Kodu</string>
+    <string name="verify">Doğrula</string>
+    <string name="resend_code">Kodu Tekrar Gönder</string>
+    
+    <!-- Settings -->
+    <string name="settings">Ayarlar</string>
+    <string name="back">Geri</string>
+    <string name="general">Genel</string>
+    <string name="notifications">Bildirimler</string>
+    <string name="dark_mode">Karanlık Mod</string>
+    <string name="account">Hesap</string>
+    <string name="logout_clear_data">Çıkış Yap / Verileri Temizle</string>
+    
+    <!-- Home -->
+    <string name="guest">Misafir</string>
+    <string name="karma">Karma: %1$d</string>
+    <string name="searching_in">Aranan bölge:</string>
+    <string name="start_matching">Eşleşmeyi Başlat</string>
+    <string name="select_country">Ülke Seç</string>
+    <string name="get_premium">Premium Al</string>
+    <string name="premium_badge">Premium</string>
+    <string name="gender_label">CİNSİYET: %1$s</string>
+    <string name="gender_all">Hepsi</string>
+    <string name="gender_male">Erkek</string>
+    <string name="gender_female">Kadın</string>
+    <string name="start_button">BAŞLAT</string>
+    <string name="find_next_button">SIRADAKİ</string>
+    <string name="say_hello_hint">Merhaba de...</string>
+    <string name="connected_watermark">BAĞLANDI</string>
+    <string name="minichat_logo_text">C H A T O R A</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Chatora\'ya Hoş Geldiniz</string>
+    <string name="onboarding_desc_1">Dünyanın her yerinden rastgele insanlarla bağlantı kurun.</string>
+    <string name="onboarding_title_2">Güvenli ve Emniyetli</string>
+    <string name="onboarding_desc_2">Güvenliğinizi önemsiyoruz.</string>
+    <string name="onboarding_title_3">Eşleşmeye Başla</string>
+    <string name="onboarding_desc_3">Yeni biriyle tanışmaya hazır mısın? Hadi!</string>
+    <string name="get_started">Başla</string>
+    <string name="next">İleri</string>
+    <string name="permissions_required">İzinler Gerekli</string>
+    <string name="permissions_desc">Chatora kamera ve mikrofona erişim sağlamalıdır.</string>
+    <string name="grant_permissions">İzin Ver</string>
+    <string name="permissions_granted">İzinler Verildi! Yönlendiriliyor...</string>
+
+    <!-- Matching -->
+    <string name="finding_someone">Birini arıyor...</string>
+    <string name="match_found">Eşleşme Bulundu!</string>
+    <string name="retry">Tekrar Dene</string>
+    <string name="cancel">İptal</string>
+    <string name="stop">Durdur</string>
+    <string name="searching_for_partners">Partner aranıyor...</string>
+    <string name="searching_title">Aranıyor...</string>
+    <string name="searching_subtitle">Sizin için özel birini bulmaya çalışıyoruz</string>
+    <string name="no_partners_found">Şu anda kimse bulunamadı. Lütfen tekrar deneyin.</string>
+    <string name="message_hint">Bir mesaj yazın...</string>
+    <string name="connecting_to">%1$s ile bağlantı kuruluyor...</string>
+
+    <!-- Video Call -->
+    <string name="switch_camera">Kamerayı Değiştir</string>
+    <string name="end_call">Aramayı Bitir</string>
+
+    <!-- Report -->
+    <string name="report_user">Kullanıcıyı Bildir</string>
+    <string name="report_reason_prompt">Bu kullanıcıyı neden bildiriyorsunuz?</string>
+    <string name="report_reason_inappropriate">Uygunsuz Davranış</string>
+    <string name="report_reason_spam">Spam / Bot</string>
+    <string name="report_reason_harassment">Taciz</string>
+    <string name="report_reason_other">Diğer</string>
+    <string name="report_details_label">Ek ayrıntılar (isteğe bağlı)</string>
+    <string name="submit_report">Bildirimi Gönder</string>
+
+    <!-- Premium -->
+    <string name="premium_title">Her Şeyi Aç</string>
+    <string name="premium_desc">Tüm özelliklere sınırsız erişim</string>
+    <string name="premium_feature_1">Cinsiyete göre filtrele (E/K)</string>
+    <string name="premium_feature_2">Ülkeye göre filtrele (Her yer)</string>
+    <string name="premium_feature_3">Tüm reklamları kaldır</string>
+    <string name="premium_feature_4">Hızlı doğrulama rozeti</string>
+    <string name="subscribe_now">Şimdi Abone Ol</string>
+    <string name="restore_purchase">Satın Almayı Geri Yükle</string>
+    <string name="plan_monthly">Aylık</string>
+    <string name="plan_yearly">Yıllık</string>
+    <string name="plan_quarterly">Üç Aylık</string>
+    <string name="currently_active">Şu Anda Aktif</string>
+    <string name="active_check">✓ AKTİF</string>
+    <string name="best_value">En İyi Değer</string>
+    <string name="per_period">periyot başına</string>
+    <string name="premium_unlock_title">%1$s Premium Kilidini Aç</string>
+    <string name="continue_button">DEVAM ET</string>
+    <string name="cancel_anytime">İstediğiniz zaman iptal edin. Şartlar geçerlidir.</string>
+</resources>

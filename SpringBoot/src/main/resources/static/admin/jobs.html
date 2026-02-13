@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت آگهی‌ها - رزونست</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Vazir';
+            src: url('/font/Vazir.woff2') format('woff2');
+        }
+
+        * {
+            font-family: 'Vazir', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #0d9488 0%, #115e59 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            position: fixed;
+            width: 250px;
+        }
+
+        .sidebar-brand {
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-brand h4 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link i {
+            margin-left: 10px;
+            width: 20px;
+        }
+
+        .main-content {
+            margin-right: 250px;
+            padding: 30px;
+        }
+
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #eee;
+            padding: 20px;
+            border-radius: 15px 15px 0 0 !important;
+        }
+
+        .btn-primary {
+            background: #0d9488;
+            border-color: #0d9488;
+        }
+
+        .btn-primary:hover {
+            background: #115e59;
+            border-color: #115e59;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+            color: white;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .badge-active {
+            background: #10b981;
+        }
+
+        .badge-inactive {
+            background: #ef4444;
+        }
+
+        .badge-government {
+            background: #3b82f6;
+        }
+
+        .pagination .page-link {
+            color: #0d9488;
+        }
+
+        .pagination .page-item.active .page-link {
+            background: #0d9488;
+            border-color: #0d9488;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="fas fa-briefcase"></i> رزونست</h4><small>پنل مدیریت</small>
+        </div>
+        <nav>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> داشبورد</a>
+            <a href="jobs.html" class="nav-link active"><i class="fas fa-clipboard-list"></i> آگهی‌ها</a>
+            <a href="applications.html" class="nav-link"><i class="fas fa-file-alt"></i> درخواست‌ها</a>
+            <a href="categories.html" class="nav-link"><i class="fas fa-folder"></i> دسته‌بندی‌ها</a>
+            <a href="locations.html" class="nav-link"><i class="fas fa-map-marker-alt"></i> استان‌ها و شهرها</a>
+            <a href="cooperation-types.html" class="nav-link"><i class="fas fa-handshake"></i> انواع همکاری</a>
+            <a href="users.html" class="nav-link"><i class="fas fa-users"></i> کاربران</a>
+            <a href="bookmarks.html" class="nav-link"><i class="fas fa-bookmark"></i> نشان‌شده‌ها</a>
+            <a href="notifications.html" class="nav-link"><i class="fas fa-bell"></i> اعلان‌ها</a>
+            <a href="resumes.html" class="nav-link"><i class="fas fa-file-pdf"></i> رزومه‌ها</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i> مدیریت آگهی‌های شغلی</h5>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+                    <i class="fas fa-plus me-1"></i> افزودن آگهی
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>عنوان شغل</th>
+                                <th>شرکت</th>
+                                <th>دسته‌بندی</th>
+                                <th>شهر</th>
+                                <th>وضعیت</th>
+                                <th>تاریخ</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="jobsTable"></tbody>
+                    </table>
+                </div>
+                <nav>
+                    <ul class="pagination justify-content-center" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Modal -->
+    <div class="modal fade" id="addModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i> افزودن آگهی جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">عنوان شغل</label>
+                                <input type="text" class="form-control" id="jobTitle" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">نام شرکت</label>
+                                <input type="text" class="form-control" id="companyName">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">دسته‌بندی</label>
+                                <select class="form-select" id="categoryId"></select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">شهر</label>
+                                <select class="form-select" id="cityId"></select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">نوع همکاری</label>
+                                <select class="form-select" id="cooperationTypeId"></select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">حقوق</label>
+                                <input type="number" class="form-control" id="salary">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">نوع حقوق</label>
+                                <select class="form-select" id="salaryType">
+                                    <option value="NEGOTIABLE">توافقی</option>
+                                    <option value="FIXED">ثابت</option>
+                                    <option value="RANGE">محدوده</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">سابقه کار</label>
+                                <input type="text" class="form-control" id="experience" placeholder="مثلاً: ۲ سال">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">توضیحات</label>
+                            <textarea class="form-control" id="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">نیازمندی‌ها</label>
+                            <textarea class="form-control" id="requirements" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isGovernment">
+                                    <label class="form-check-label">استخدام دولتی</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="isUrgent">
+                                    <label class="form-check-label">فوری</label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="button" class="btn btn-primary" onclick="addJob()">ذخیره آگهی</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '';
+        const token = localStorage.getItem('adminToken');
+        if (!token) window.location.href = 'index.html';
+
+        let currentPage = 0;
+        const pageSize = 10;
+
+        async function loadJobs(page = 0) {
+            currentPage = page;
+            try {
+                const res = await fetch(`${API_BASE}/api/jobs?pageIndex=${page}&pageSize=${pageSize}`);
+                const data = await res.json();
+                const tbody = document.getElementById('jobsTable');
+                tbody.innerHTML = '';
+                if (data.data && data.data[0]) {
+                    const pageData = data.data[0];
+                    pageData.content.forEach((job, idx) => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${page * pageSize + idx + 1}</td>
+                                <td>${job.title}</td>
+                                <td>${job.companyName || '-'}</td>
+                                <td>${job.category?.name || '-'}</td>
+                                <td>${job.city?.name || '-'}</td>
+                                <td>
+                                    ${job.isActive ? '<span class="badge badge-active">فعال</span>' : '<span class="badge badge-inactive">غیرفعال</span>'}
+                                    ${job.isGovernment ? '<span class="badge badge-government ms-1">دولتی</span>' : ''}
+                                </td>
+                                <td>${new Date(job.createdAt).toLocaleDateString('fa-IR')}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-warning me-1" onclick="deactivateJob(${job.id})">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteJob(${job.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    renderPagination(pageData.totalPages);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function renderPagination(totalPages) {
+            const ul = document.getElementById('pagination');
+            ul.innerHTML = '';
+            for (let i = 0; i < totalPages; i++) {
+                ul.innerHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadJobs(${i})">${i + 1}</a>
+                    </li>
+                `;
+            }
+        }
+
+        async function loadDropdowns() {
+            // Categories
+            const catsRes = await fetch(`${API_BASE}/api/categories`);
+            const cats = await catsRes.json();
+            const catSelect = document.getElementById('categoryId');
+            catSelect.innerHTML = '<option value="">انتخاب دسته‌بندی</option>';
+            if (cats.data) cats.data.forEach(c => catSelect.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+
+            // Cities
+            const citiesRes = await fetch(`${API_BASE}/api/locations/cities`);
+            const cities = await citiesRes.json();
+            const citySelect = document.getElementById('cityId');
+            citySelect.innerHTML = '<option value="">انتخاب شهر</option>';
+            if (cities.data) cities.data.forEach(c => citySelect.innerHTML += `<option value="${c.id}">${c.name}</option>`);
+
+            // Cooperation Types
+            const typesRes = await fetch(`${API_BASE}/api/cooperation-types`);
+            const types = await typesRes.json();
+            const typeSelect = document.getElementById('cooperationTypeId');
+            typeSelect.innerHTML = '<option value="">انتخاب نوع همکاری</option>';
+            if (types.data) types.data.forEach(t => typeSelect.innerHTML += `<option value="${t.id}">${t.name}</option>`);
+        }
+
+        async function addJob() {
+            const job = {
+                title: document.getElementById('jobTitle').value,
+                companyName: document.getElementById('companyName').value,
+                description: document.getElementById('description').value,
+                requirements: document.getElementById('requirements').value,
+                salary: document.getElementById('salary').value ? parseInt(document.getElementById('salary').value) : null,
+                salaryType: document.getElementById('salaryType').value,
+                experience: document.getElementById('experience').value,
+                isGovernment: document.getElementById('isGovernment').checked,
+                isUrgent: document.getElementById('isUrgent').checked,
+                category: { id: parseInt(document.getElementById('categoryId').value) },
+                city: { id: parseInt(document.getElementById('cityId').value) },
+                cooperationType: { id: parseInt(document.getElementById('cooperationTypeId').value) }
+            };
+            try {
+                await fetch(`${API_BASE}/api/admin/jobs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(job)
+                });
+                bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
+                loadJobs();
+            } catch (e) { console.error(e); }
+        }
+
+        async function deactivateJob(id) {
+            if (!confirm('آیا از غیرفعال کردن این آگهی اطمینان دارید؟')) return;
+            try {
+                await fetch(`${API_BASE}/api/admin/jobs/${id}/deactivate`, {
+                    method: 'PUT', headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadJobs(currentPage);
+            } catch (e) { console.error(e); }
+        }
+
+        async function deleteJob(id) {
+            if (!confirm('آیا از حذف این آگهی اطمینان دارید؟')) return;
+            try {
+                await fetch(`${API_BASE}/api/admin/jobs/${id}`, {
+                    method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadJobs(currentPage);
+            } catch (e) { console.error(e); }
+        }
+
+        loadJobs();
+        loadDropdowns();
+    </script>
+</body>
+
+</html>

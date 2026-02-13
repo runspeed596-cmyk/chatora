@@ -1,0 +1,111 @@
+﻿<resources>
+    <string name="app_name">चटोरा</string>
+    <string name="welcome_back">वापसी पर स्वागत है</string>
+    <string name="create_account">खाता बनाएं</string>
+    <string name="login_continue">जारी रखने के लिए लॉगिन करें</string>
+    <string name="join_community">आज ही समुदाय में शामिल हों</string>
+    <string name="username">उपयोगकर्ता नाम</string>
+    <string name="email">ईमेल</string>
+    <string name="password">पासवर्ड</string>
+    <string name="login">लॉगिन</string>
+    <string name="sign_up">साइन अप</string>
+    <string name="no_account">खाता नहीं है? साइन अप करें</string>
+    <string name="have_account">पहले से खाता है? लॉगिन करें</string>
+    <string name="google_sign_in">गूगल के साथ जारी रखें</string>
+    <string name="or"> या </string>
+    <string name="error">त्रुटि</string>
+    <string name="ok">ठीक है</string>
+    <string name="verify_email">ईमेल सत्यापित करें</string>
+    <string name="verify_code_sent">सत्यापन कोड भेजा गया है</string>
+    <string name="verification_code">सत्यापन कोड</string>
+    <string name="verify">सत्यापित करें</string>
+    <string name="resend_code">कोड पुन: भेजें</string>
+    
+    <!-- Settings -->
+    <string name="settings">सेटिंग्स</string>
+    <string name="back">पीछे</string>
+    <string name="general">सामान्य</string>
+    <string name="notifications">सूचनाएं</string>
+    <string name="dark_mode">डार्क मोड</string>
+    <string name="account">खाता</string>
+    <string name="logout_clear_data">लॉगआउट / डेटा साफ़ करें</string>
+    
+    <!-- Home -->
+    <string name="guest">अतिथि</string>
+    <string name="karma">कर्मा: %1$d</string>
+    <string name="searching_in">इसमें खोज रहे हैं</string>
+    <string name="start_matching">मैचिंग शुरू करें</string>
+    <string name="select_country">देश चुनें</string>
+    <string name="get_premium">प्रीमियम प्राप्त करें</string>
+    <string name="premium_badge">प्रीमियम</string>
+    <string name="gender_label">लिंग: %1$s</string>
+    <string name="gender_all">सभी</string>
+    <string name="gender_male">पुरुष</string>
+    <string name="gender_female">महिला</string>
+    <string name="start_button">प्रारंभ</string>
+    <string name="find_next_button">अगला</string>
+    <string name="say_hello_hint">नमस्ते कहें...</string>
+    <string name="connected_watermark">जुड़ा हुआ</string>
+    <string name="minichat_logo_text">चटोरा</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">चटोरा में आपका स्वागत है</string>
+    <string name="onboarding_desc_1">दुनिया भर के यादृच्छिक लोगों से जुड़ें।</string>
+    <string name="onboarding_title_2">सुरक्षित और संरक्षित</string>
+    <string name="onboarding_desc_2">हम आपकी सुरक्षा को प्राथमिकता देते हैं।</string>
+    <string name="onboarding_title_3">मैचिंग शुरू करें</string>
+    <string name="onboarding_desc_3">किसी नए व्यक्ति से मिलने के लिए तैयार हैं? चलें!</string>
+    <string name="get_started">शुरू करें</string>
+    <string name="next">अगला</string>
+    <string name="permissions_required">अनुमतियाँ आवश्यक</string>
+    <string name="permissions_desc">चटोरा को आपके कैमरा और माइक्रोफ़ोन तक पहुँच की आवश्यकता है।</string>
+    <string name="grant_permissions">अनुमति दें</string>
+    <string name="permissions_granted">अनुमति प्रदान की गई! रीडायरेक्ट किया जा रहा है...</string>
+
+    <!-- Matching -->
+    <string name="finding_someone">किसी को खोज रहे हैं...</string>
+    <string name="match_found">मैच मिल गया!</string>
+    <string name="retry">पुन: प्रयास करें</string>
+    <string name="cancel">रद्द करें</string>
+    <string name="stop">रोकें</string>
+    <string name="searching_for_partners">साझेदारों की तलाश...</string>
+    <string name="searching_title">खोज रहे हैं...</string>
+    <string name="searching_subtitle">हम आपके लिए किसी खास को ढूंढ रहे हैं</string>
+    <string name="no_partners_found">फिलहाल कोई साझेदार नहीं मिला। कृपया पुन: प्रयास करें।</string>
+    <string name="message_hint">संदेश टाइप करें...</string>
+    <string name="connecting_to">%1$s से जुड़ रहे हैं...</string>
+
+    <!-- Video Call -->
+    <string name="switch_camera">कैमरा बदलें</string>
+    <string name="end_call">कॉल समाप्त करें</string>
+
+    <!-- Report -->
+    <string name="report_user">उपयोगकर्ता की रिपोर्ट करें</string>
+    <string name="report_reason_prompt">आप इस उपयोगकर्ता की रिपोर्ट क्यों कर रहे हैं?</string>
+    <string name="report_reason_inappropriate">अनुचित व्यवहार</string>
+    <string name="report_reason_spam">स्पैम / बॉट</string>
+    <string name="report_reason_harassment">उत्पीड़न</string>
+    <string name="report_reason_other">अन्य</string>
+    <string name="report_details_label">अतिरिक्त विवरण (वैकल्पिक)</string>
+    <string name="submit_report">रिपोर्ट सबमिट करें</string>
+
+    <!-- Premium -->
+    <string name="premium_title">सब कुछ अनलॉक करें</string>
+    <string name="premium_desc">सभी सुविधाओं तक असीमित पहुँच प्राप्त करें</string>
+    <string name="premium_feature_1">लिंग के आधार पर फ़िल्टर (पुरुष/महिला)</string>
+    <string name="premium_feature_2">देश के आधार पर फ़िल्टर (कहीं भी)</string>
+    <string name="premium_feature_3">सभी विज्ञापन हटाएँ</string>
+    <string name="premium_feature_4">त्वरित सत्यापन बैज</string>
+    <string name="subscribe_now">अभी सदस्यता लें</string>
+    <string name="restore_purchase">खरीद बहाल करें</string>
+    <string name="plan_monthly">मासिक</string>
+    <string name="plan_yearly">वार्षिक</string>
+    <string name="plan_quarterly">त्रैमासिक</string>
+    <string name="currently_active">वर्तमान में सक्रिय</string>
+    <string name="active_check">✓ सक्रिय</string>
+    <string name="best_value">सर्वोत्तम मूल्य</string>
+    <string name="per_period">प्रति अवधि</string>
+    <string name="premium_unlock_title">%1$s प्रीमियम अनलॉक करें</string>
+    <string name="continue_button">जारी रखें</string>
+    <string name="cancel_anytime">किसी भी समय रद्द करें। शर्तें लागू।</string>
+</resources>

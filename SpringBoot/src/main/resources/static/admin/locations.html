@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت مکان‌ها - رزونست</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Vazir';
+            src: url('/font/Vazir.woff2') format('woff2');
+        }
+
+        * {
+            font-family: 'Vazir', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #0d9488 0%, #115e59 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            position: fixed;
+            width: 250px;
+        }
+
+        .sidebar-brand {
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-brand h4 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link i {
+            margin-left: 10px;
+            width: 20px;
+        }
+
+        .main-content {
+            margin-right: 250px;
+            padding: 30px;
+        }
+
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #eee;
+            padding: 20px;
+        }
+
+        .btn-primary {
+            background: #0d9488;
+            border-color: #0d9488;
+        }
+
+        .btn-primary:hover {
+            background: #115e59;
+            border-color: #115e59;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+            color: white;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .province-item {
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 5px;
+            transition: all 0.2s;
+        }
+
+        .province-item:hover,
+        .province-item.active {
+            background: #e8f5f4;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="fas fa-briefcase"></i> رزونست</h4><small>پنل مدیریت</small>
+        </div>
+        <nav>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> داشبورد</a>
+            <a href="jobs.html" class="nav-link"><i class="fas fa-clipboard-list"></i> آگهی‌ها</a>
+            <a href="applications.html" class="nav-link"><i class="fas fa-file-alt"></i> درخواست‌ها</a>
+            <a href="categories.html" class="nav-link"><i class="fas fa-folder"></i> دسته‌بندی‌ها</a>
+            <a href="locations.html" class="nav-link active"><i class="fas fa-map-marker-alt"></i> استان‌ها و شهرها</a>
+            <a href="cooperation-types.html" class="nav-link"><i class="fas fa-handshake"></i> انواع همکاری</a>
+            <a href="users.html" class="nav-link"><i class="fas fa-users"></i> کاربران</a>
+            <a href="bookmarks.html" class="nav-link"><i class="fas fa-bookmark"></i> نشان‌شده‌ها</a>
+            <a href="notifications.html" class="nav-link"><i class="fas fa-bell"></i> اعلان‌ها</a>
+            <a href="resumes.html" class="nav-link"><i class="fas fa-file-pdf"></i> رزومه‌ها</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-map me-2"></i> استان‌ها</h6>
+                        <button class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                            data-bs-target="#addProvinceModal">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                    </div>
+                    <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div id="provincesList"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="fas fa-city me-2"></i> شهرها - <span id="selectedProvinceName">انتخاب
+                                استان</span></h6>
+                        <button class="btn btn-sm btn-primary" id="addCityBtn" style="display:none"
+                            data-bs-toggle="modal" data-bs-target="#addCityModal">
+                            <i class="fas fa-plus me-1"></i> افزودن شهر
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>نام شهر</th>
+                                        <th>عملیات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="citiesTable"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Province Modal -->
+    <div class="modal fade" id="addProvinceModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">افزودن استان</h5><button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label class="form-label">نام استان</label><input type="text" class="form-control"
+                            id="provinceName" required></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="button" class="btn btn-primary" onclick="addProvince()">ذخیره</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add City Modal -->
+    <div class="modal fade" id="addCityModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">افزودن شهر</h5><button type="button" class="btn-close"
+                        data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3"><label class="form-label">نام شهر</label><input type="text" class="form-control"
+                            id="cityName" required></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="button" class="btn btn-primary" onclick="addCity()">ذخیره</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '';
+        const token = localStorage.getItem('adminToken');
+        if (!token) window.location.href = 'index.html';
+
+        let selectedProvinceId = null;
+
+        async function loadProvinces() {
+            try {
+                const res = await fetch(`${API_BASE}/api/locations/provinces`);
+                const data = await res.json();
+                const list = document.getElementById('provincesList');
+                list.innerHTML = '';
+                if (data.data) {
+                    data.data.forEach(p => {
+                        list.innerHTML += `
+                            <div class="province-item" onclick="selectProvince(${p.id}, '${p.name}')">
+                                <i class="fas fa-map-marker-alt me-2 text-muted"></i> ${p.name}
+                            </div>
+                        `;
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function selectProvince(id, name) {
+            selectedProvinceId = id;
+            document.getElementById('selectedProvinceName').textContent = name;
+            document.getElementById('addCityBtn').style.display = 'block';
+            document.querySelectorAll('.province-item').forEach(el => el.classList.remove('active'));
+            event.target.closest('.province-item').classList.add('active');
+
+            try {
+                const res = await fetch(`${API_BASE}/api/locations/provinces/${id}/cities`);
+                const data = await res.json();
+                const tbody = document.getElementById('citiesTable');
+                tbody.innerHTML = '';
+                if (data.data) {
+                    data.data.forEach((c, idx) => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td>${c.name}</td>
+                                <td><button class="btn btn-sm btn-outline-danger" onclick="deleteCity(${c.id})"><i class="fas fa-trash"></i></button></td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function addProvince() {
+            const name = document.getElementById('provinceName').value;
+            try {
+                await fetch(`${API_BASE}/api/admin/locations/provinces`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ name })
+                });
+                bootstrap.Modal.getInstance(document.getElementById('addProvinceModal')).hide();
+                document.getElementById('provinceName').value = '';
+                loadProvinces();
+            } catch (e) { console.error(e); }
+        }
+
+        async function addCity() {
+            if (!selectedProvinceId) return;
+            const name = document.getElementById('cityName').value;
+            try {
+                await fetch(`${API_BASE}/api/admin/locations/cities`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ name, province: { id: selectedProvinceId } })
+                });
+                bootstrap.Modal.getInstance(document.getElementById('addCityModal')).hide();
+                document.getElementById('cityName').value = '';
+                selectProvince(selectedProvinceId, document.getElementById('selectedProvinceName').textContent);
+            } catch (e) { console.error(e); }
+        }
+
+        async function deleteCity(id) {
+            if (!confirm('آیا از حذف این شهر اطمینان دارید؟')) return;
+            try {
+                await fetch(`${API_BASE}/api/admin/locations/cities/${id}`, {
+                    method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }
+                });
+                selectProvince(selectedProvinceId, document.getElementById('selectedProvinceName').textContent);
+            } catch (e) { console.error(e); }
+        }
+
+        loadProvinces();
+    </script>
+</body>
+
+</html>

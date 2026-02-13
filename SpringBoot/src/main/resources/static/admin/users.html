@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت کاربران - رزونست</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Vazir';
+            src: url('/font/Vazir.woff2') format('woff2');
+        }
+
+        * {
+            font-family: 'Vazir', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #0d9488 0%, #115e59 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            position: fixed;
+            width: 250px;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-brand h4 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link i {
+            margin-left: 10px;
+            width: 20px;
+        }
+
+        .main-content {
+            margin-right: 250px;
+            padding: 30px;
+        }
+
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #eee;
+            padding: 20px;
+            border-radius: 15px 15px 0 0 !important;
+        }
+
+        .btn-primary {
+            background: #0d9488;
+            border-color: #0d9488;
+        }
+
+        .btn-primary:hover {
+            background: #115e59;
+            border-color: #115e59;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+            color: white;
+        }
+
+        .modal-header .btn-close {
+            filter: brightness(0) invert(1);
+        }
+
+        .badge-jobseeker {
+            background: #10b981;
+        }
+
+        .badge-employer {
+            background: #3b82f6;
+        }
+
+        .badge-admin {
+            background: #f59e0b;
+        }
+
+        .pagination .page-link {
+            color: #0d9488;
+        }
+
+        .pagination .page-item.active .page-link {
+            background: #0d9488;
+            border-color: #0d9488;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #eee;
+        }
+
+        .filter-bar {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="fas fa-briefcase"></i> رزونست</h4><small>پنل مدیریت</small>
+        </div>
+        <nav>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> داشبورد</a>
+            <a href="jobs.html" class="nav-link"><i class="fas fa-clipboard-list"></i> آگهی‌ها</a>
+            <a href="applications.html" class="nav-link"><i class="fas fa-file-alt"></i> درخواست‌ها</a>
+            <a href="categories.html" class="nav-link"><i class="fas fa-folder"></i> دسته‌بندی‌ها</a>
+            <a href="locations.html" class="nav-link"><i class="fas fa-map-marker-alt"></i> استان‌ها و شهرها</a>
+            <a href="cooperation-types.html" class="nav-link"><i class="fas fa-handshake"></i> انواع همکاری</a>
+            <a href="users.html" class="nav-link active"><i class="fas fa-users"></i> کاربران</a>
+            <a href="bookmarks.html" class="nav-link"><i class="fas fa-bookmark"></i> نشان‌شده‌ها</a>
+            <a href="notifications.html" class="nav-link"><i class="fas fa-bell"></i> اعلان‌ها</a>
+            <a href="resumes.html" class="nav-link"><i class="fas fa-file-pdf"></i> رزومه‌ها</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <!-- Filter Bar -->
+        <div class="filter-bar d-flex justify-content-between align-items-center">
+            <div class="d-flex gap-2">
+                <select class="form-select" id="userTypeFilter" onchange="loadUsers()">
+                    <option value="">همه کاربران</option>
+                    <option value="JOBSEEKER">کارجویان</option>
+                    <option value="EMPLOYER">کارفرمایان</option>
+                </select>
+            </div>
+            <div>
+                <span class="text-muted me-2">تعداد کل: <strong id="totalCount">0</strong></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-users me-2"></i> مدیریت کاربران</h5>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addModal">
+                    <i class="fas fa-plus me-1"></i> افزودن کاربر
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>تصویر</th>
+                                <th>نام کاربری</th>
+                                <th>نام کامل</th>
+                                <th>نوع</th>
+                                <th>ایمیل</th>
+                                <th>تلفن</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable"></tbody>
+                    </table>
+                </div>
+                <nav>
+                    <ul class="pagination justify-content-center" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Modal -->
+    <div class="modal fade" id="addModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-plus me-2"></i> افزودن کاربر جدید</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">نام کاربری *</label>
+                                <input type="text" class="form-control" id="username" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">رمز عبور *</label>
+                                <input type="password" class="form-control" id="password" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">نام کامل</label>
+                                <input type="text" class="form-control" id="fullName">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">نوع کاربر</label>
+                                <select class="form-select" id="userType">
+                                    <option value="JOBSEEKER">کارجو</option>
+                                    <option value="EMPLOYER">کارفرما</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ایمیل</label>
+                                <input type="email" class="form-control" id="email">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">تلفن</label>
+                                <input type="text" class="form-control" id="phone">
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="isAdmin">
+                            <label class="form-check-label">ادمین است</label>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="button" class="btn btn-primary" onclick="addUser()">ذخیره</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-edit me-2"></i> ویرایش کاربر</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="editId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">نام کامل</label>
+                            <input type="text" class="form-control" id="editFullName">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">نوع کاربر</label>
+                            <select class="form-select" id="editUserType">
+                                <option value="JOBSEEKER">کارجو</option>
+                                <option value="EMPLOYER">کارفرما</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">ایمیل</label>
+                            <input type="email" class="form-control" id="editEmail">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">تلفن</label>
+                            <input type="text" class="form-control" id="editPhone">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">رمز عبور جدید (خالی = بدون تغییر)</label>
+                            <input type="password" class="form-control" id="editPassword">
+                        </div>
+                        <div class="col-md-6 mb-3 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="editIsAdmin">
+                                <label class="form-check-label">ادمین است</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">انصراف</button>
+                    <button type="button" class="btn btn-primary" onclick="updateUser()">ذخیره</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div class="modal fade" id="viewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-eye me-2"></i> جزئیات کاربر</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="viewContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '';
+        const token = localStorage.getItem('adminToken');
+        if (!token) window.location.href = 'index.html';
+
+        let currentPage = 0;
+        const pageSize = 10;
+
+        async function loadUsers(page = 0) {
+            currentPage = page;
+            const userType = document.getElementById('userTypeFilter').value;
+            try {
+                let url = `${API_BASE}/api/admin/users?pageIndex=${page}&pageSize=${pageSize}`;
+                if (userType) url += `&userType=${userType}`;
+
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const tbody = document.getElementById('usersTable');
+                tbody.innerHTML = '';
+
+                if (data.data && data.data[0]) {
+                    const pageData = data.data[0];
+                    document.getElementById('totalCount').textContent = pageData.totalElements || 0;
+
+                    pageData.content.forEach((user, idx) => {
+                        const typeClass = user.isAdmin ? 'badge-admin' : (user.userType === 'EMPLOYER' ? 'badge-employer' : 'badge-jobseeker');
+                        const typeText = user.isAdmin ? 'ادمین' : (user.userType === 'EMPLOYER' ? 'کارفرما' : 'کارجو');
+                        const avatar = user.profileImage ? `/${user.profileImage}` : 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23ddd"/><text x="50" y="55" font-size="30" text-anchor="middle" fill="%23888">👤</text></svg>';
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${page * pageSize + idx + 1}</td>
+                                <td><img src="${avatar}" class="user-avatar" alt=""></td>
+                                <td>${user.username}</td>
+                                <td>${user.fullName || '-'}</td>
+                                <td><span class="badge ${typeClass}">${typeText}</span></td>
+                                <td>${user.email || '-'}</td>
+                                <td>${user.phone || '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-info me-1" onclick="viewUser(${user.id})">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editUser(${user.id})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    renderPagination(pageData.totalPages);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function renderPagination(totalPages) {
+            const ul = document.getElementById('pagination');
+            ul.innerHTML = '';
+            for (let i = 0; i < totalPages; i++) {
+                ul.innerHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadUsers(${i})">${i + 1}</a>
+                    </li>
+                `;
+            }
+        }
+
+        async function addUser() {
+            const user = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                fullName: document.getElementById('fullName').value,
+                userType: document.getElementById('userType').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                isAdmin: document.getElementById('isAdmin').checked
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(user)
+                });
+                const data = await res.json();
+                if (data.status === 'CREATED' || data.status === 'OK') {
+                    bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
+                    document.getElementById('addForm').reset();
+                    loadUsers();
+                } else {
+                    alert(data.message || 'خطا در ایجاد کاربر');
+                }
+            } catch (e) { console.error(e); alert('خطا در ارتباط با سرور'); }
+        }
+
+        async function editUser(id) {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.data && data.data[0]) {
+                    const user = data.data[0];
+                    document.getElementById('editId').value = user.id;
+                    document.getElementById('editFullName').value = user.fullName || '';
+                    document.getElementById('editUserType').value = user.userType || 'JOBSEEKER';
+                    document.getElementById('editEmail').value = user.email || '';
+                    document.getElementById('editPhone').value = user.phone || '';
+                    document.getElementById('editPassword').value = '';
+                    document.getElementById('editIsAdmin').checked = user.isAdmin;
+                    new bootstrap.Modal(document.getElementById('editModal')).show();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function updateUser() {
+            const id = document.getElementById('editId').value;
+            const user = {
+                fullName: document.getElementById('editFullName').value,
+                userType: document.getElementById('editUserType').value,
+                email: document.getElementById('editEmail').value,
+                phone: document.getElementById('editPhone').value,
+                password: document.getElementById('editPassword').value,
+                isAdmin: document.getElementById('editIsAdmin').checked
+            };
+
+            try {
+                await fetch(`${API_BASE}/api/admin/users/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(user)
+                });
+                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                loadUsers(currentPage);
+            } catch (e) { console.error(e); }
+        }
+
+        async function viewUser(id) {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (data.data && data.data[0]) {
+                    const u = data.data[0];
+                    const typeText = u.isAdmin ? 'ادمین' : (u.userType === 'EMPLOYER' ? 'کارفرما' : 'کارجو');
+
+                    document.getElementById('viewContent').innerHTML = `
+                        <div class="row">
+                            <div class="col-md-4 text-center">
+                                <img src="${u.profileImage ? '/' + u.profileImage : 'data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><circle cx=\"50\" cy=\"50\" r=\"50\" fill=\"%23ddd\"/><text x=\"50\" y=\"55\" font-size=\"30\" text-anchor=\"middle\" fill=\"%23888\">👤</text></svg>'}" 
+                                     class="rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;">
+                                <h5>${u.fullName || u.username}</h5>
+                                <p class="text-muted">${typeText}</p>
+                            </div>
+                            <div class="col-md-8">
+                                <table class="table table-borderless">
+                                    <tr><th>نام کاربری:</th><td>${u.username}</td></tr>
+                                    <tr><th>ایمیل:</th><td>${u.email || '-'}</td></tr>
+                                    <tr><th>تلفن:</th><td>${u.phone || '-'}</td></tr>
+                                    <tr><th>شهر:</th><td>${u.cityName || '-'}</td></tr>
+                                    ${u.userType === 'EMPLOYER' ? `
+                                        <tr><th>نام شرکت:</th><td>${u.companyName || '-'}</td></tr>
+                                        <tr><th>وب‌سایت:</th><td>${u.companyWebsite || '-'}</td></tr>
+                                    ` : `
+                                        <tr><th>مهارت‌ها:</th><td>${u.skills || '-'}</td></tr>
+                                        <tr><th>تحصیلات:</th><td>${u.education || '-'}</td></tr>
+                                    `}
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                    new bootstrap.Modal(document.getElementById('viewModal')).show();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        async function deleteUser(id) {
+            if (!confirm('آیا از حذف این کاربر اطمینان دارید؟ این عمل قابل بازگشت نیست.')) return;
+            try {
+                await fetch(`${API_BASE}/api/admin/users/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadUsers(currentPage);
+            } catch (e) { console.error(e); }
+        }
+
+        // Clean up modal backdrops when navigating
+        function cleanupModals() {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+
+        // Run cleanup on page load
+        cleanupModals();
+
+        // Handle auth errors
+        window.addEventListener('unhandledrejection', function (e) {
+            if (e.reason && e.reason.message && e.reason.message.includes('401')) {
+                localStorage.removeItem('adminToken');
+                window.location.href = 'index.html';
+            }
+        });
+
+        loadUsers();
+    </script>
+</body>
+
+</html>

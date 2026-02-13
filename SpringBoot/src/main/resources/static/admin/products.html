@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت محصولات - پنل مدیریت</title>
+    <link rel="stylesheet" href="css/admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>پنل مدیریت فروشگاه</h2>
+            </div>
+
+            <nav>
+                <ul class="sidebar-nav">
+                    <li><a href="dashboard.html">
+                            <span>📊</span>
+                            <span>داشبورد</span>
+                        </a></li>
+                    <li><a href="products.html" class="active">
+                            <span>📦</span>
+                            <span>محصولات</span>
+                        </a></li>
+                    <li><a href="categories.html">
+                            <span>📂</span>
+                            <span>دسته‌بندی‌ها</span>
+                        </a></li>
+                    <li><a href="colors.html">
+                            <span>🎨</span>
+                            <span>رنگ‌ها</span>
+                        </a></li>
+                    <li><a href="sizes.html">
+                            <span>📏</span>
+                            <span>سایزها</span>
+                        </a></li>
+                    <li><a href="#" onclick="logout(); return false;">
+                            <span>🚪</span>
+                            <span>خروج</span>
+                        </a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="top-bar">
+                <h1>مدیریت محصولات</h1>
+                <div class="user-menu">
+                    <span id="adminUsername">مدیر</span>
+                    <div class="user-avatar">A</div>
+                </div>
+            </div>
+
+            <div class="content-card">
+                <div class="content-header">
+                    <h2>لیست محصولات</h2>
+                    <a href="product-form.html" class="btn btn-primary">افزودن محصول جدید</a>
+                </div>
+
+                <!-- Search -->
+                <div class="mb-3">
+                    <input type="text" id="searchInput" placeholder="جستجو..." class="form-group"
+                        style="max-width: 400px;">
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>شناسه</th>
+                            <th>عنوان</th>
+                            <th>قیمت</th>
+                            <th>موجودی</th>
+                            <th>دسته‌بندی</th>
+                            <th>وضعیت</th>
+                            <th>عملیات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="productsTable">
+                        <tr>
+                            <td colspan="7" class="text-center">در حال بارگذاری...</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="pagination" id="pagination"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/admin.js"></script>
+    <script>
+        checkAuth();
+
+        let currentPage = 0;
+        const pageSize = 10;
+
+        async function loadProducts(page = 0) {
+            currentPage = page;
+            const tbody = document.getElementById('productsTable');
+
+            try {
+                const response = await apiRequest(`/api/product?pageSize=${pageSize}&pageIndex=${page}`);
+
+                if (response && response.data && response.data.length > 0) {
+                    tbody.innerHTML = '';
+                    response.data.forEach(product => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${product.id}</td>
+                            <td>${product.title}</td>
+                            <td>${formatPrice(product.price)}</td>
+                            <td>${product.stockQuantity || 0}</td>
+                            <td>${product.category?.title || '-'}</td>
+                            <td>
+                                <span style="color: ${product.isActive ? '#4facfe' : '#f5576c'}">
+                                    ${product.isActive ? 'فعال' : 'غیرفعال'}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="flex gap-1">
+                                    <a href="product-form.html?id=${product.id}" class="btn btn-sm btn-secondary">ویرایش</a>
+                                    <button onclick="deleteProduct(${product.id})" class="btn btn-sm btn-danger">حذف</button>
+                                </div>
+                            </td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+
+                    // Update pagination
+                    if (response.totalCount) {
+                        renderPagination(response.totalCount, pageSize, currentPage,
+                            document.getElementById('pagination'), loadProducts);
+                    }
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="7" class="text-center">محصولی یافت نشد</td></tr>';
+                }
+            } catch (error) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center">خطا در بارگذاری داده‌ها</td></tr>';
+                console.error('Error:', error);
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (!confirmAction('آیا از حذف این محصول اطمینان دارید؟')) {
+                return;
+            }
+
+            try {
+                const response = await apiRequest(`/api/admin/product/${id}`, {
+                    method: 'DELETE'
+                });
+
+                if (response && response.status === 'OK') {
+                    showNotification('محصول با موفقیت حذف شد', 'success');
+                    loadProducts(currentPage);
+                } else {
+                    showNotification('خطا در حذف محصول', 'error');
+                }
+            } catch (error) {
+                showNotification('خطا در حذف محصول', 'error');
+            }
+        }
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', debounce((e) => {
+            // Implement search logic here
+            console.log('Searching for:', e.target.value);
+        }, 500));
+
+        // Initialize
+        loadProducts();
+    </script>
+</body>
+
+</html>

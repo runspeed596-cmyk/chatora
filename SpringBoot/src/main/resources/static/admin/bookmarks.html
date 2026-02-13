@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مدیریت نشان‌شده‌ها - رزونست</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Vazir';
+            src: url('/font/Vazir.woff2') format('woff2');
+        }
+
+        * {
+            font-family: 'Vazir', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #0d9488 0%, #115e59 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            position: fixed;
+            width: 250px;
+            z-index: 100;
+        }
+
+        .sidebar-brand {
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-brand h4 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link i {
+            margin-left: 10px;
+            width: 20px;
+        }
+
+        .main-content {
+            margin-right: 250px;
+            padding: 30px;
+        }
+
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            border: none;
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #eee;
+            padding: 20px;
+            border-radius: 15px 15px 0 0 !important;
+        }
+
+        .btn-primary {
+            background: #0d9488;
+            border-color: #0d9488;
+        }
+
+        .btn-primary:hover {
+            background: #115e59;
+            border-color: #115e59;
+        }
+
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+
+        .pagination .page-link {
+            color: #0d9488;
+        }
+
+        .pagination .page-item.active .page-link {
+            background: #0d9488;
+            border-color: #0d9488;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="fas fa-briefcase"></i> رزونست</h4><small>پنل مدیریت</small>
+        </div>
+        <nav>
+            <a href="dashboard.html" class="nav-link"><i class="fas fa-home"></i> داشبورد</a>
+            <a href="jobs.html" class="nav-link"><i class="fas fa-clipboard-list"></i> آگهی‌ها</a>
+            <a href="applications.html" class="nav-link"><i class="fas fa-file-alt"></i> درخواست‌ها</a>
+            <a href="categories.html" class="nav-link"><i class="fas fa-folder"></i> دسته‌بندی‌ها</a>
+            <a href="locations.html" class="nav-link"><i class="fas fa-map-marker-alt"></i> استان‌ها و شهرها</a>
+            <a href="cooperation-types.html" class="nav-link"><i class="fas fa-handshake"></i> انواع همکاری</a>
+            <a href="users.html" class="nav-link"><i class="fas fa-users"></i> کاربران</a>
+            <a href="bookmarks.html" class="nav-link active"><i class="fas fa-bookmark"></i> نشان‌شده‌ها</a>
+            <a href="notifications.html" class="nav-link"><i class="fas fa-bell"></i> اعلان‌ها</a>
+            <a href="resumes.html" class="nav-link"><i class="fas fa-file-pdf"></i> رزومه‌ها</a>
+        </nav>
+    </div>
+
+    <div class="main-content">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-bookmark me-2"></i> مدیریت نشان‌شده‌ها</h5>
+                <span class="text-muted">تعداد کل: <strong id="totalCount">0</strong></span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>کاربر</th>
+                                <th>عنوان آگهی</th>
+                                <th>شرکت</th>
+                                <th>تاریخ</th>
+                                <th>عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookmarksTable"></tbody>
+                    </table>
+                </div>
+                <nav>
+                    <ul class="pagination justify-content-center" id="pagination"></ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const API_BASE = '';
+        const token = localStorage.getItem('adminToken');
+        if (!token) window.location.href = 'index.html';
+
+        let currentPage = 0;
+        const pageSize = 10;
+
+        async function loadBookmarks(page = 0) {
+            currentPage = page;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/bookmarks?pageIndex=${page}&pageSize=${pageSize}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                const tbody = document.getElementById('bookmarksTable');
+                tbody.innerHTML = '';
+
+                if (data.data && data.data[0]) {
+                    const pageData = data.data[0];
+                    document.getElementById('totalCount').textContent = pageData.totalElements || 0;
+
+                    pageData.content.forEach((bookmark, idx) => {
+                        tbody.innerHTML += `
+                            <tr>
+                                <td>${page * pageSize + idx + 1}</td>
+                                <td>${bookmark.user?.fullName || bookmark.user?.username || '-'}</td>
+                                <td>${bookmark.job?.title || '-'}</td>
+                                <td>${bookmark.job?.companyName || '-'}</td>
+                                <td>${bookmark.createdAt ? new Date(bookmark.createdAt).toLocaleDateString('fa-IR') : '-'}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteBookmark(${bookmark.id})">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                    renderPagination(pageData.totalPages);
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        function renderPagination(totalPages) {
+            const ul = document.getElementById('pagination');
+            ul.innerHTML = '';
+            for (let i = 0; i < totalPages; i++) {
+                ul.innerHTML += `
+                    <li class="page-item ${i === currentPage ? 'active' : ''}">
+                        <a class="page-link" href="#" onclick="loadBookmarks(${i})">${i + 1}</a>
+                    </li>
+                `;
+            }
+        }
+
+        async function deleteBookmark(id) {
+            if (!confirm('آیا از حذف این نشان‌شده اطمینان دارید؟')) return;
+            try {
+                await fetch(`${API_BASE}/api/admin/bookmarks/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                loadBookmarks(currentPage);
+            } catch (e) { console.error(e); }
+        }
+
+        // Clean up modal backdrops
+        function cleanupModals() {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.overflow = '';
+        }
+        cleanupModals();
+
+        loadBookmarks();
+    </script>
+</body>
+
+</html>

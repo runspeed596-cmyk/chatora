@@ -1,0 +1,111 @@
+﻿<resources>
+    <string name="app_name">شاتورا</string>
+    <string name="welcome_back">مرحباً بعودتك</string>
+    <string name="create_account">إنشاء حساب</string>
+    <string name="login_continue">تسجيل الدخول للمتابعة</string>
+    <string name="join_community">انضم إلى مجتمعنا اليوم</string>
+    <string name="username">اسم المستخدم</string>
+    <string name="email">البريد الإلكتروني</string>
+    <string name="password">كلمة المرور</string>
+    <string name="login">تسجيل الدخول</string>
+    <string name="sign_up">اشتراك</string>
+    <string name="no_account">ليس لديك حساب؟ اشترك الآن</string>
+    <string name="have_account">لديك حساب بالفعل؟ سجل دخولك</string>
+    <string name="google_sign_in">المتابعة باستخدام Google</string>
+    <string name="or"> أو </string>
+    <string name="error">خطأ</string>
+    <string name="ok">موافق</string>
+    <string name="verify_email">تأكيد البريد الإلكتروني</string>
+    <string name="verify_code_sent">تم إرسال رمز التأكيد إلى</string>
+    <string name="verification_code">رمز التأكيد</string>
+    <string name="verify">تأكيد</string>
+    <string name="resend_code">إعادة إرسال الرمز</string>
+    
+    <!-- Settings -->
+    <string name="settings">الإعدادات</string>
+    <string name="back">رجوع</string>
+    <string name="general">عام</string>
+    <string name="notifications">الإشعارات</string>
+    <string name="dark_mode">الوضع الليلي</string>
+    <string name="account">الحساب</string>
+    <string name="logout_clear_data">تسجيل الخروج / مسح البيانات</string>
+    
+    <!-- Home -->
+    <string name="guest">ضيف</string>
+    <string name="karma">كارما: %1$d</string>
+    <string name="searching_in">البحث في</string>
+    <string name="start_matching">بدء المطابقة</string>
+    <string name="select_country">اختر الدولة</string>
+    <string name="get_premium">احصل على بريميوم</string>
+    <string name="premium_badge">بريميوم</string>
+    <string name="gender_label">الجنس: %1$s</string>
+    <string name="gender_all">الكل</string>
+    <string name="gender_male">ذكر</string>
+    <string name="gender_female">أنثى</string>
+    <string name="start_button">ابدأ</string>
+    <string name="find_next_button">التالي</string>
+    <string name="say_hello_hint">قل مرحباً...</string>
+    <string name="connected_watermark">متصل</string>
+    <string name="minichat_logo_text">شاتورا</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">مرحباً بك في شاتورا</string>
+    <string name="onboarding_desc_1">تواصل مع أشخاص عشوائيين من جميع أنحاء العالم.</string>
+    <string name="onboarding_title_2">آمن ومحمي</string>
+    <string name="onboarding_desc_2">نحن نولي أمانك الأولوية مع نظام مراقبة متقدم.</string>
+    <string name="onboarding_title_3">ابدأ الآن</string>
+    <string name="onboarding_desc_3">مستعد للقاء شخص جديد؟ لنبدأ!</string>
+    <string name="get_started">ابدأ الآن</string>
+    <string name="next">التالي</string>
+    <string name="permissions_required">الأذونات المطلوبة</string>
+    <string name="permissions_desc">للتواصل مع الناس، يحتاج شاتورا للوصول إلى الكاميرا والميكروفون.</string>
+    <string name="grant_permissions">منح الأذونات</string>
+    <string name="permissions_granted">تم منح الأذونات! جاري التحويل...</string>
+
+    <!-- Matching -->
+    <string name="finding_someone">جاري البحث...</string>
+    <string name="match_found">تم العثور!</string>
+    <string name="retry">إعادة المحاولة</string>
+    <string name="cancel">إلغاء</string>
+    <string name="stop">توقف</string>
+    <string name="searching_for_partners">جاري البحث عن شركاء...</string>
+    <string name="searching_title">جاري البحث...</string>
+    <string name="searching_subtitle">نحاول مطابقتك مع شخص مميز</string>
+    <string name="no_partners_found">لم يتم العثور على شركاء حالياً. يرجى المحاولة مرة أخرى.</string>
+    <string name="message_hint">اكتب رسالة...</string>
+    <string name="connecting_to">جاري الاتصال بـ %1$s...</string>
+
+    <!-- Video Call -->
+    <string name="switch_camera">تبديل الكاميرا</string>
+    <string name="end_call">إنهاء المكالمة</string>
+
+    <!-- Report -->
+    <string name="report_user">إبلاغ عن مستخدم</string>
+    <string name="report_reason_prompt">لماذا تبلغ عن هذا المستخدم؟</string>
+    <string name="report_reason_inappropriate">سلوك غير لائق</string>
+    <string name="report_reason_spam">سبام / بوت</string>
+    <string name="report_reason_harassment">مضايقة</string>
+    <string name="report_reason_other">آخر</string>
+    <string name="report_details_label">تفاصيل إضافية (اختياري)</string>
+    <string name="submit_report">إرسال البلاغ</string>
+
+    <!-- Premium -->
+    <string name="premium_title">فتح كل الميزات</string>
+    <string name="premium_desc">احصل على وصول غير محدود لجميع الميزات</string>
+    <string name="premium_feature_1">تصفية حسب الجنس (ذكر/أنثى)</string>
+    <string name="premium_feature_2">تصفية حسب الدولة (أي مكان)</string>
+    <string name="premium_feature_3">إزالة جميع الإعلانات</string>
+    <string name="premium_feature_4">شارة توثيق سريعة</string>
+    <string name="subscribe_now">اشترك الآن</string>
+    <string name="restore_purchase">استعادة المشتريات</string>
+    <string name="plan_monthly">شهري</string>
+    <string name="plan_yearly">سنوي</string>
+    <string name="plan_quarterly">ربع سنوي</string>
+    <string name="currently_active">نشط حالياً</string>
+    <string name="active_check">✓ نشط</string>
+    <string name="best_value">أفضل قيمة</string>
+    <string name="per_period">لكل فترة</string>
+    <string name="premium_unlock_title">فتح %1$s بريميوم</string>
+    <string name="continue_button">متابعة</string>
+    <string name="cancel_anytime">إلغاء في أي وقت. الشروط تنطبق.</string>
+</resources>

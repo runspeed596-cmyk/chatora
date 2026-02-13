@@ -1,0 +1,111 @@
+﻿<resources>
+    <string name="app_name">Chatora</string>
+    <string name="welcome_back">С возвращением</string>
+    <string name="create_account">Создать аккаунт</string>
+    <string name="login_continue">Войдите, чтобы продолжить</string>
+    <string name="join_community">Присоединяйтесь к сообществу</string>
+    <string name="username">Имя пользователя</string>
+    <string name="email">Электронная почта</string>
+    <string name="password">Пароль</string>
+    <string name="login">Войти</string>
+    <string name="sign_up">Регистрация</string>
+    <string name="no_account">Нет аккаунта? Зарегистрироваться</string>
+    <string name="have_account">Уже есть аккаунт? Войти</string>
+    <string name="google_sign_in">Войти через Google</string>
+    <string name="or"> ИЛИ </string>
+    <string name="error">Ошибка</string>
+    <string name="ok">ОК</string>
+    <string name="verify_email">Подтвердить почту</string>
+    <string name="verify_code_sent">Код подтверждения отправлен на</string>
+    <string name="verification_code">Код подтверждения</string>
+    <string name="verify">Подтвердить</string>
+    <string name="resend_code">Отправить код еще раз</string>
+    
+    <!-- Settings -->
+    <string name="settings">Настройки</string>
+    <string name="back">Назад</string>
+    <string name="general">Общие</string>
+    <string name="notifications">Уведомления</string>
+    <string name="dark_mode">Темная тема</string>
+    <string name="account">Аккаунт</string>
+    <string name="logout_clear_data">Выйти / Удалить данные</string>
+    
+    <!-- Home -->
+    <string name="guest">Гость</string>
+    <string name="karma">Карма: %1$d</string>
+    <string name="searching_in">Поиск в</string>
+    <string name="start_matching">Начать поиск</string>
+    <string name="select_country">Выбрать страну</string>
+    <string name="get_premium">Получить Premium</string>
+    <string name="premium_badge">Premium</string>
+    <string name="gender_label">ПОЛ: %1$s</string>
+    <string name="gender_all">Все</string>
+    <string name="gender_male">Мужской</string>
+    <string name="gender_female">Женский</string>
+    <string name="start_button">СТАРТ</string>
+    <string name="find_next_button">СЛЕДУЮЩИЙ</string>
+    <string name="say_hello_hint">Скажите привет...</string>
+    <string name="connected_watermark">ПОДКЛЮЧЕНО</string>
+    <string name="minichat_logo_text">C H A T O R A</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Добро пожаловать в Chatora</string>
+    <string name="onboarding_desc_1">Общайтесь со случайными людьми со всего мира.</string>
+    <string name="onboarding_title_2">Безопасно и надежно</string>
+    <string name="onboarding_desc_2">Ваша безопасность — наш приоритет.</string>
+    <string name="onboarding_title_3">Начать поиск</string>
+    <string name="onboarding_desc_3">Готовы встретить кого-то нового? Погнали!</string>
+    <string name="get_started">Начать</string>
+    <string name="next">Далее</string>
+    <string name="permissions_required">Нужны разрешения</string>
+    <string name="permissions_desc">Chatora нужен доступ к камере и микрофону.</string>
+    <string name="grant_permissions">Предоставить доступ</string>
+    <string name="permissions_granted">Разрешения получены! Перенаправление...</string>
+
+    <!-- Matching -->
+    <string name="finding_someone">Ищем собеседника...</string>
+    <string name="match_found">Собеседник найден!</string>
+    <string name="retry">Повторить</string>
+    <string name="cancel">Отмена</string>
+    <string name="stop">Стоп</string>
+    <string name="searching_for_partners">Поиск партнеров...</string>
+    <string name="searching_title">Поиск...</string>
+    <string name="searching_subtitle">Ищем кого-то особенного для вас</string>
+    <string name="no_partners_found">Партнеры не найдены. Попробуйте еще раз.</string>
+    <string name="message_hint">Введите сообщение...</string>
+    <string name="connecting_to">Подключение к %1$s...</string>
+
+    <!-- Video Call -->
+    <string name="switch_camera">Сменить камеру</string>
+    <string name="end_call">Завершить звонок</string>
+
+    <!-- Report -->
+    <string name="report_user">Пожаловаться</string>
+    <string name="report_reason_prompt">Почему вы жалуетесь на этого пользователя?</string>
+    <string name="report_reason_inappropriate">Непристойное поведение</string>
+    <string name="report_reason_spam">Спам / Бот</string>
+    <string name="report_reason_harassment">Домогательство</string>
+    <string name="report_reason_other">Другое</string>
+    <string name="report_details_label">Дополнительные детали (необязательно)</string>
+    <string name="submit_report">Отправить жалобу</string>
+
+    <!-- Premium -->
+    <string name="premium_title">Разблокировать всё</string>
+    <string name="premium_desc">Безлимитный доступ ко всем функциям</string>
+    <string name="premium_feature_1">Фильтр по полу (М/Ж)</string>
+    <string name="premium_feature_2">Фильтр по стране (Любая)</string>
+    <string name="premium_feature_3">Убрать всю рекламу</string>
+    <string name="premium_feature_4">Значок быстрой верификации</string>
+    <string name="subscribe_now">Подписаться сейчас</string>
+    <string name="restore_purchase">Восстановить покупку</string>
+    <string name="plan_monthly">Ежемесячно</string>
+    <string name="plan_yearly">Ежегодно</string>
+    <string name="plan_quarterly">Ежеквартально</string>
+    <string name="currently_active">Активен сейчас</string>
+    <string name="active_check">✓ АКТИВЕН</string>
+    <string name="best_value">Выгодная цена</string>
+    <string name="per_period">за период</string>
+    <string name="premium_unlock_title">Разблокировать %1$s Premium</string>
+    <string name="continue_button">ПРОДОЛЖИТЬ</string>
+    <string name="cancel_anytime">Отмена в любое время. Применяются условия.</string>
+</resources>
