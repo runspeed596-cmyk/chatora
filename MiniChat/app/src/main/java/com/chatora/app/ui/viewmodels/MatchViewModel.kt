@@ -201,8 +201,8 @@ class MatchViewModel @Inject constructor(
             try {
                 // ... (rest of logic) ...
                 val json = org.json.JSONObject(data)
-                android.util.Log.d("MINICHAT_DEBUG", "RAW MATCH JSON: ${json.toString()}")
                 val type = json.optString("type")
+                
                 
                 if (type == "PARTNER_LEFT") {
                    android.util.Log.i("MINICHAT_DEBUG", "PARTNER_LEFT received. Auto-finding next match...")
@@ -240,8 +240,6 @@ class MatchViewModel @Inject constructor(
                 // Parse partner IP and country from server response
                 val partnerIp = json.optString("partnerIp", "")
                 val partnerCountryCode = json.optString("partnerCountryCode", "")
-                android.util.Log.w("MINICHAT_DEBUG", ">>> PARTNER IP='$partnerIp' COUNTRY='$partnerCountryCode' <<<")
-                android.util.Log.w("MINICHAT_DEBUG", ">>> JSON has partnerIp key: ${json.has("partnerIp")}, has partnerCountryCode key: ${json.has("partnerCountryCode")} <<<")
                 
                 _matchState.value = MatchUiState.Found(
                     partner = partnerUser,
