@@ -84,8 +84,11 @@ class WebSocketConfig(
                 
                 if (StompCommand.CONNECT == accessor?.command) {
                     // Extract IP for GeoIP (Requirement Point 1)
-                    val ip = accessor.getFirstNativeHeader("X-Forwarded-For") ?: "127.0.0.1"
-                    accessor.sessionAttributes?.put("IP_ADDRESS", ip)
+                    // ONLY set if not already present from HandshakeInterceptor
+                    if (accessor.sessionAttributes?.containsKey("IP_ADDRESS") != true) {
+                        val ip = accessor.getFirstNativeHeader("X-Forwarded-For") ?: "127.0.0.1"
+                        accessor.sessionAttributes?.put("IP_ADDRESS", ip)
+                    }
 
                     val authHeader = accessor.getFirstNativeHeader("Authorization")
                     if (authHeader != null && authHeader.startsWith("Bearer ")) {

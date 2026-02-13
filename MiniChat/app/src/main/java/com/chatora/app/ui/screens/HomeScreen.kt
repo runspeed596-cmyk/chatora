@@ -35,6 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.chatora.app.R
 import com.chatora.app.data.Country
+import com.chatora.app.data.StaticData
 import com.chatora.app.navigation.Screen
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -180,15 +181,29 @@ fun HomeScreen(
                 // 3. Chat Area
                 Box(modifier = Modifier.weight(1f)) {
                     val foundState = uiState as? MatchUiState.Found
+                    
                     PremiumChatArea(
                         messages = messages,
-                        partnerIp = foundState?.partnerIp ?: "",
-                        partnerCountryCode = foundState?.partnerCountryCode ?: "",
                         onMediaClick = { url, type ->
                             selectedMediaUrl = url
                             selectedMediaType = type
                         }
                     )
+                    
+                    // Floating Partner Info Badge — Always show during match to prove it works
+                    if (foundState != null) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 12.dp),
+                            contentAlignment = Alignment.TopCenter
+                        ) {
+                            PartnerInfoBar(
+                                partnerIp = foundState.partnerIp,
+                                partnerCountryCode = foundState.partnerCountryCode
+                            )
+                        }
+                    }
                 }
 
                 // 4. Control Section
@@ -377,9 +392,13 @@ fun PremiumVideoContainer(
             // ===== STATE OVERLAYS — only the overlay changes, not the renderer =====
             when (uiState) {
                 is MatchUiState.Found -> {
-                    if (!isVideoReady) {
-                        VideoPlaceholderOverlay(partnerName = uiState.partner.username)
-                    }
+                    // Restore "CONNECTED" watermark to video as requested
+                    Text(
+                        text = stringResource(R.string.connected_watermark),
+                        color = Color.White.copy(alpha = 0.5f),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(16.dp).align(Alignment.TopEnd)
+                    )
                 }
                 is MatchUiState.Searching -> {
                     // Dark overlay covers the renderer during search
@@ -408,14 +427,7 @@ fun PremiumVideoContainer(
                 }
             }
             
-            // Partner watermark
-            Text(
-                stringResource(R.string.connected_watermark),
-                modifier = Modifier.align(Alignment.TopEnd).padding(20.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = if (uiState is MatchUiState.Found) Color(0xFF00FFC2) else Color.White.copy(alpha = 0.2f),
-                fontWeight = FontWeight.Bold
-            )
+            // Removed partner watermark for clear view
         }
     }
 }
@@ -425,8 +437,8 @@ fun VideoPlaceholderOverlay(partnerName: String) {
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.8f))
-            .blur(30.dp),
+            .background(Color.Black.copy(alpha = 0.4f))
+            .blur(10.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -744,8 +756,6 @@ fun GenderOptionCard(
 @Composable
 fun PremiumChatArea(
     messages: List<ChatMessage>,
-    partnerIp: String = "",
-    partnerCountryCode: String = "",
     onMediaClick: (String, String) -> Unit = { _, _ -> }
 ) {
     val listState = rememberLazyListState()
@@ -753,20 +763,12 @@ fun PremiumChatArea(
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    val showPartnerInfo = partnerIp.isNotEmpty() || partnerCountryCode.isNotEmpty()
-
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(bottom = 16.dp)
+        contentPadding = PaddingValues(top = 40.dp, bottom = 16.dp)
     ) {
-        // Compact partner info as first item in chat
-        if (showPartnerInfo) {
-            item(key = "partner_info") {
-                PartnerInfoBar(partnerIp = partnerIp, partnerCountryCode = partnerCountryCode)
-            }
-        }
         items(messages) { msg ->
             PremiumChatBubble(msg, onMediaClick = onMediaClick)
         }
@@ -775,14 +777,12 @@ fun PremiumChatArea(
 
 @Composable
 fun PartnerInfoBar(partnerIp: String, partnerCountryCode: String) {
-    // Lookup country flag from StaticData
-    val country = if (partnerCountryCode.isNotEmpty()) {
+    val country = if (partnerCountryCode.isNotEmpty() && partnerCountryCode != "AUTO") {
         com.chatora.app.data.StaticData.getCountries().find { 
             it.code.equals(partnerCountryCode, ignoreCase = true) 
         }
     } else null
     
-    // Partially mask IP for privacy: show first and last octet, mask middle
     val maskedIp = if (partnerIp.isNotEmpty()) {
         val parts = partnerIp.split(".")
         if (parts.size == 4) {
@@ -790,44 +790,74 @@ fun PartnerInfoBar(partnerIp: String, partnerCountryCode: String) {
         } else partnerIp
     } else ""
     
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+    Surface(
+        color = Color.Black.copy(alpha = 0.7f), // Higher contrast
+        shape = RoundedCornerShape(16.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.1f)),
+        modifier = Modifier.padding(horizontal = 8.dp)
     ) {
-        if (country != null) {
-            Text(
-                text = country.flag,
-                fontSize = 14.sp
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            // "Connected" Status Icon/Text
+            Icon(
+                Icons.Default.Wifi, 
+                null, 
+                tint = Color(0xFF00FFC2), 
+                modifier = Modifier.size(10.dp)
             )
             Spacer(Modifier.width(6.dp))
-            Text(
-                text = stringResource(country.nameRes),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 11.sp
-            )
-        }
-        if (maskedIp.isNotEmpty()) {
             if (country != null) {
-                Spacer(Modifier.width(12.dp))
+                Text(text = country.flag, fontSize = 12.sp)
+                Spacer(Modifier.width(4.dp))
                 Text(
-                    text = "•",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    text = stringResource(country.nameRes),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.9f),
                     fontSize = 10.sp
                 )
-                Spacer(Modifier.width(12.dp))
+            } else {
+                Text(
+                    text = if (partnerCountryCode.isNotEmpty()) partnerCountryCode else "...",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.5f),
+                    fontSize = 10.sp
+                )
             }
-            Text(
-                text = maskedIp,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                fontSize = 11.sp,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
-            )
+            
+            if (maskedIp.isNotEmpty()) {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "•",
+                    color = Color.White.copy(alpha = 0.3f),
+                    fontSize = 8.sp
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = maskedIp,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.9f),
+                    fontSize = 10.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+            } else {
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "•",
+                    color = Color.White.copy(alpha = 0.2f),
+                    fontSize = 8.sp
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "0.0.0.0",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.White.copy(alpha = 0.3f),
+                    fontSize = 10.sp,
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                )
+            }
         }
     }
 }
@@ -894,7 +924,6 @@ fun MediaPreview(url: String, mediaType: String, onClick: () -> Unit) {
             Column {
                 Text(
                     text = if (isVideo) "Video Media" else "Photo Media",
-                    color = Color.White,
                     style = MaterialTheme.typography.labelLarge
                 )
                 Text(
