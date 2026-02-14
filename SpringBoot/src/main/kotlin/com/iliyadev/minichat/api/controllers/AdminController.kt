@@ -221,8 +221,20 @@ class AdminController(
     // ─── Subscriptions ───────────────────────────────────────────────────────────
 
     @GetMapping("/subscriptions")
-    fun getSubscriptions(): ApiResponse<List<SubscriptionPlan>> {
-        return ApiResponse.success(subscriptionPlanRepository.findAll())
+    fun getSubscriptions(): ApiResponse<List<Map<String, Any?>>> {
+        val plans = subscriptionPlanRepository.findAll()
+        val dtos = plans.map { plan ->
+            mapOf(
+                "id" to plan.id.toString(),
+                "name" to plan.name,
+                "durationMonths" to plan.months,
+                "price" to plan.priceUsd,
+                "currency" to "USD",
+                "features" to listOf("دسترسی به تمام امکانات", "تماس ویدیویی نامحدود", "بدون تبلیغات"),
+                "lastUpdated" to plan.updatedAt.toString()
+            )
+        }
+        return ApiResponse.success(dtos)
     }
 
     @PutMapping("/plans/{id}")

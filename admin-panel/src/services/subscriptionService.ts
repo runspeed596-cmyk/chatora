@@ -8,11 +8,11 @@ export const subscriptionService = {
         return data.map((p: any) => ({
             id: p.id,
             name: p.name,
-            durationMonths: p.months,
-            price: p.priceUsd,
-            currency: 'تومان',
-            features: [],
-            lastUpdated: p.updatedAt
+            durationMonths: p.durationMonths,
+            price: p.price,
+            currency: p.currency || 'USD',
+            features: p.features || [],
+            lastUpdated: p.lastUpdated
         }));
     },
 
