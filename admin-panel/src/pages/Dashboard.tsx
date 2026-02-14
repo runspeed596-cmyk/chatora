@@ -4,8 +4,7 @@ import {
     Users as UsersIcon,
     Activity,
     Banknote,
-    Eye,
-    MapPin
+    Eye
 } from 'lucide-react';
 import { StatsCard } from '../components/dashboard/StatsCard';
 import { RevenueChart } from '../components/dashboard/RevenueChart';
@@ -22,13 +21,6 @@ export const Dashboard: React.FC = () => {
         queryKey: ['revenue-history'],
         queryFn: statsService.getRevenueHistory
     });
-
-    const { data: countries } = useQuery({
-        queryKey: ['countries'],
-        queryFn: statsService.getTopCountries
-    });
-
-
 
     if (isSummaryLoading || isRevenueLoading) {
         return (
@@ -84,35 +76,9 @@ export const Dashboard: React.FC = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Revenue Chart */}
-                <div className="lg:col-span-2">
-                    <RevenueChart data={revenueHistory || []} />
-                </div>
-
-                {/* Country Breakdown */}
-                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700">
-                    <div className="flex items-center justify-between mb-8">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white font-vazir">توزیع کاربران (IP)</h3>
-                        <MapPin className="w-5 h-5 text-gray-400" />
-                    </div>
-                    <div className="space-y-6">
-                        {countries?.map((c) => (
-                            <div key={c.code} className="space-y-2">
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="font-medium text-gray-700 dark:text-gray-300 font-vazir">{c.country}</span>
-                                    <span className="text-gray-500 dark:text-gray-400 font-vazir">{c.count.toLocaleString()} کاربر</span>
-                                </div>
-                                <div className="w-full bg-gray-100 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                    <div
-                                        className="bg-primary-500 h-full rounded-full transition-all duration-1000"
-                                        style={{ width: `${(c.count / (summary.totalUsers || 1)) * 100}%` }}
-                                    />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+            {/* Revenue Chart — Full Width */}
+            <div>
+                <RevenueChart data={revenueHistory || []} />
             </div>
         </div>
     );

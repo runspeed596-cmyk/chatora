@@ -9,8 +9,6 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Users } from './pages/Users';
 import { Subscriptions } from './pages/Subscriptions';
-import { Revenue } from './pages/Revenue';
-import { Analytics } from './pages/Analytics';
 
 // Create a client
 const queryClient = new QueryClient();
@@ -29,8 +27,6 @@ const App: React.FC = () => {
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/users" element={<Users />} />
                   <Route path="/subscriptions" element={<Subscriptions />} />
-                  <Route path="/revenue" element={<Revenue />} />
-                  <Route path="/analytics" element={<Analytics />} />
                 </Route>
               </Route>
 
@@ -44,4 +40,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

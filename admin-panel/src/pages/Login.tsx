@@ -6,7 +6,6 @@ import { authService } from '../services/authService';
 export const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
@@ -19,7 +18,7 @@ export const Login: React.FC = () => {
 
         try {
             const data = await authService.login(username, password);
-            login(data, rememberMe);
+            login(data);
             navigate('/');
         } catch (err: any) {
             if (err.response && err.response.status === 401) {
@@ -73,19 +72,6 @@ export const Login: React.FC = () => {
                             placeholder="رمز عبور خود را وارد کنید"
                             required
                         />
-                    </div>
-
-                    <div className="flex items-center gap-2 mr-1">
-                        <input
-                            type="checkbox"
-                            id="rememberMe"
-                            checked={rememberMe}
-                            onChange={(e) => setRememberMe(e.target.checked)}
-                            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
-                        />
-                        <label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer font-vazir">
-                            مرا به خاطر بسپار
-                        </label>
                     </div>
 
                     <button

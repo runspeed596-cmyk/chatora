@@ -1,24 +1,22 @@
-let accessToken: string | null = localStorage.getItem('access_token');
-let refreshToken: string | null = localStorage.getItem('refresh_token');
+const STORAGE_KEY_ACCESS = 'access_token';
+const STORAGE_KEY_REFRESH = 'refresh_token';
 
 export const tokenManager = {
-    getAccessToken: () => accessToken,
-    getRefreshToken: () => refreshToken,
-    setAccessToken: (token: string, persist = false) => {
-        accessToken = token;
-        if (persist) localStorage.setItem('access_token', token);
-        else localStorage.removeItem('access_token');
+    getAccessToken: (): string | null => {
+        return localStorage.getItem(STORAGE_KEY_ACCESS);
     },
-    setRefreshToken: (token: string, persist = false) => {
-        refreshToken = token;
-        if (persist) localStorage.setItem('refresh_token', token);
-        else localStorage.removeItem('refresh_token');
+    getRefreshToken: (): string | null => {
+        return localStorage.getItem(STORAGE_KEY_REFRESH);
+    },
+    setAccessToken: (token: string) => {
+        localStorage.setItem(STORAGE_KEY_ACCESS, token);
+    },
+    setRefreshToken: (token: string) => {
+        localStorage.setItem(STORAGE_KEY_REFRESH, token);
     },
     clearTokens: () => {
-        accessToken = null;
-        refreshToken = null;
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
+        localStorage.removeItem(STORAGE_KEY_ACCESS);
+        localStorage.removeItem(STORAGE_KEY_REFRESH);
         localStorage.removeItem('admin_user');
     }
 };

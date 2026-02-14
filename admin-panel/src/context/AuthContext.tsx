@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { tokenManager } from '../utils/tokenManager';
-import type { AuthState, LoginResponse } from '../types/auth'; // User removed if unused
+import type { AuthState, LoginResponse } from '../types/auth';
 
 interface AuthContextType extends AuthState {
-    login: (data: LoginResponse, rememberMe?: boolean) => void;
+    login: (data: LoginResponse) => void;
     logout: () => void;
 }
 
@@ -17,7 +17,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     useEffect(() => {
-        // Attempt to restore session
+        // Attempt to restore session from localStorage
         const storedUser = localStorage.getItem('admin_user');
         const token = tokenManager.getAccessToken();
 
@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setState(prev => ({ ...prev, isLoading: false }));
         }
 
-        // Listen for forced logout
+        // Listen for forced logout (e.g., 401 from API)
         const handleLogout = () => logout();
         window.addEventListener('auth:logout', handleLogout);
 
@@ -45,12 +45,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
     }, []);
 
-    const login = (data: LoginResponse, rememberMe = false) => {
-        tokenManager.setAccessToken(data.accessToken, rememberMe);
-        tokenManager.setRefreshToken(data.refreshToken, rememberMe);
-        if (rememberMe) {
-            localStorage.setItem('admin_user', JSON.stringify(data.user));
-        }
+    const login = (data: LoginResponse) => {
+        // Always persist tokens and user data to localStorage
+        tokenManager.setAccessToken(data.accessToken);
+        tokenManager.setRefreshToken(data.refreshToken);
+        localStorage.setItem('admin_user', JSON.stringify(data.user));
         setState({
             user: data.user,
             isAuthenticated: true,

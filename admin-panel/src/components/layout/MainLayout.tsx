@@ -5,8 +5,6 @@ import {
     LayoutDashboard,
     Users as UsersIcon,
     CreditCard as SubscriptionIcon,
-    TrendingUp as RevenueIcon,
-    Globe,
     LogOut,
     Menu,
     ChevronLeft
@@ -23,8 +21,6 @@ export const MainLayout: React.FC = () => {
         { name: 'داشبورد', href: '/', icon: LayoutDashboard },
         { name: 'کاربران', href: '/users', icon: UsersIcon },
         { name: 'اشتراک‌ها', href: '/subscriptions', icon: SubscriptionIcon },
-        { name: 'تراکنش‌ها', href: '/revenue', icon: RevenueIcon },
-        { name: 'تحلیل جغرافیایی', href: '/analytics', icon: Globe },
     ];
 
     return (
