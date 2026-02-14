@@ -280,17 +280,6 @@ class MatchViewModel @Inject constructor(
                     isPremium = false
                 )
 
-                // Parse partner IP and country from server response
-                val partnerIp = json.optString("partnerIp", "")
-                val partnerCountryCode = json.optString("partnerCountryCode", "")
-                
-                _matchState.value = MatchUiState.Found(
-                    partner = partnerUser,
-                    partnerIp = partnerIp,
-                    partnerCountryCode = partnerCountryCode
-                )
-                android.util.Log.d("MINICHAT_DEBUG", "UI State updated to Found")
-
                 // Reset video state for new connection IMMEDIATELY on found
                 _remoteVideoReady.value = false
                 
