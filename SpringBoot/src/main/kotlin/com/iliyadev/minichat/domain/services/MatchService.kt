@@ -218,12 +218,12 @@ class MatchService(
     private fun isValidMatch(u1: WaitingUser, u2: WaitingUser, strict: Boolean): Boolean {
         // Anti-Abuse Rules (Spec mandatory)
         if (u1.userId == u2.userId) {
-            logger.debug("isValidMatch REJECTED: same userId (${u1.username})")
+            logger.info("isValidMatch REJECTED: same userId (${u1.username})")
             return false
         }
         // Block same-IP matching only for public IPs (private/Docker IPs are shared and unreliable)
         if (u1.ipAddress == u2.ipAddress && !isPrivateOrLocalIp(u1.ipAddress)) {
-            logger.debug("isValidMatch REJECTED: same public IP ${u1.ipAddress} (${u1.username} vs ${u2.username})")
+            logger.info("isValidMatch REJECTED: same public IP '${u1.ipAddress}' (${u1.username} vs ${u2.username}), isPrivate=${isPrivateOrLocalIp(u1.ipAddress)}")
             return false
         }
         
@@ -231,7 +231,7 @@ class MatchService(
         // LOOSENED FOR SMALL POOLS: If only 2 people, allow matching again to prevent deadlocks in testing
         if (waiters.size > 2) {
             if (u1.lastMatchedUserId == u2.userId || u2.lastMatchedUserId == u1.userId) {
-                logger.debug("isValidMatch REJECTED: repeat match (${u1.username} vs ${u2.username})")
+                logger.info("isValidMatch REJECTED: repeat match (${u1.username} vs ${u2.username})")
                 return false
             }
         }
@@ -239,16 +239,16 @@ class MatchService(
         if (strict) {
             // Honor Partner's Preferences in strict mode
             if (u2.preferredGender != "ALL" && u2.preferredGender != u1.gender) {
-                logger.debug("isValidMatch REJECTED: gender mismatch (${u1.username}=${u1.gender} vs ${u2.username} prefers ${u2.preferredGender})")
+                logger.info("isValidMatch REJECTED: gender mismatch (${u1.username}=${u1.gender} vs ${u2.username} prefers ${u2.preferredGender})")
                 return false
             }
             if (u2.preferredCountry != "*" && u2.preferredCountry != "AUTO" && u2.preferredCountry != u1.country) {
-                logger.debug("isValidMatch REJECTED: country mismatch (${u1.username}=${u1.country} vs ${u2.username} prefers ${u2.preferredCountry})")
+                logger.info("isValidMatch REJECTED: country mismatch (${u1.username}=${u1.country} vs ${u2.username} prefers ${u2.preferredCountry})")
                 return false
             }
             // Karma check for quality
             if (Math.abs(u1.karma - u2.karma) > 70) {
-                logger.debug("isValidMatch REJECTED: karma gap (${u1.username}=${u1.karma} vs ${u2.username}=${u2.karma})")
+                logger.info("isValidMatch REJECTED: karma gap (${u1.username}=${u1.karma} vs ${u2.username}=${u2.karma})")
                 return false
             }
         }
