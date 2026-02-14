@@ -38,20 +38,32 @@ class AuthController(
     }
 
     @PostMapping("/google")
-    fun googleLogin(@Valid @RequestBody request: GoogleLoginRequest): ApiResponse<AuthResponse> {
-        val response = googleLoginUseCase.execute(request)
+    fun googleLogin(
+        @Valid @RequestBody request: GoogleLoginRequest,
+        servletRequest: jakarta.servlet.http.HttpServletRequest
+    ): ApiResponse<AuthResponse> {
+        val remoteIp = servletRequest.remoteAddr
+        val response = googleLoginUseCase.execute(request, remoteIp)
         return ApiResponse.success(response, "Google login successful")
     }
 
     @PostMapping("/email/login")
-    fun emailLogin(@Valid @RequestBody request: EmailLoginRequest): ApiResponse<AuthResponse> {
-        val response = emailAuthUseCase.login(request)
+    fun emailLogin(
+        @Valid @RequestBody request: EmailLoginRequest,
+        servletRequest: jakarta.servlet.http.HttpServletRequest
+    ): ApiResponse<AuthResponse> {
+        val remoteIp = servletRequest.remoteAddr
+        val response = emailAuthUseCase.login(request, remoteIp)
         return ApiResponse.success(response, "Email login successful")
     }
 
     @PostMapping("/email/register")
-    fun emailRegister(@Valid @RequestBody request: EmailRegisterRequest): ApiResponse<AuthResponse> {
-        val response = emailAuthUseCase.register(request)
+    fun emailRegister(
+        @Valid @RequestBody request: EmailRegisterRequest,
+        servletRequest: jakarta.servlet.http.HttpServletRequest
+    ): ApiResponse<AuthResponse> {
+        val remoteIp = servletRequest.remoteAddr
+        val response = emailAuthUseCase.register(request, remoteIp)
         return ApiResponse.success(response, "Registration successful. Please verify your email.")
     }
 

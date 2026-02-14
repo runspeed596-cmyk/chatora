@@ -30,9 +30,9 @@ data class User(
     @Enumerated(EnumType.STRING)
     var gender: Gender = Gender.UNSPECIFIED,
 
-    var countryCode: String = "US",
+    var countryCode: String? = null,
     
-    var languageCode: String = "en",
+    var languageCode: String? = "en",
 
     var karma: Int = 100,
 

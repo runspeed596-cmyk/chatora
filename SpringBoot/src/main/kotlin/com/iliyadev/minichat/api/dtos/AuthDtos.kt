@@ -8,8 +8,8 @@ data class LoginRequest(
     val deviceId: String? = null,
     val username: String? = null,
     val password: String? = null,
-    val countryCode: String = "US",
-    val languageCode: String = "en",
+    val countryCode: String? = null,
+    val languageCode: String? = "en",
     val fcmToken: String? = null
 )
 
@@ -33,8 +33,8 @@ data class GoogleLoginRequest(
     val idToken: String,
     @field:NotBlank
     val deviceId: String,
-    val countryCode: String = "US",
-    val languageCode: String = "en"
+    val countryCode: String? = null,
+    val languageCode: String? = "en"
 )
 
 data class EmailLoginRequest(
@@ -59,8 +59,8 @@ data class EmailRegisterRequest(
     val username: String,
     @field:NotBlank
     val deviceId: String,
-    val countryCode: String = "US",
-    val languageCode: String = "en"
+    val countryCode: String? = null,
+    val languageCode: String? = "en"
 )
 
 data class VerifyEmailRequest(

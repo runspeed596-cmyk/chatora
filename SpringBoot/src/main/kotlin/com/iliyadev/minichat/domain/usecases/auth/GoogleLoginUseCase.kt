@@ -15,10 +15,11 @@ import java.util.*
 class GoogleLoginUseCase(
     private val userRepository: UserRepository,
     private val googleAuthService: GoogleAuthService,
-    private val jwtService: JwtService
+    private val jwtService: JwtService,
+    private val geoIPService: com.iliyadev.minichat.domain.services.GeoIPService
 ) {
     @Transactional
-    fun execute(request: GoogleLoginRequest): AuthResponse {
+    fun execute(request: GoogleLoginRequest, ipAddress: String? = null): AuthResponse {
         val googleToken = googleAuthService.verifyToken(request.idToken)
             ?: throw InvalidCredentialsException("Invalid Google login. Please try again.")
 
@@ -30,6 +31,8 @@ class GoogleLoginUseCase(
         val extractedUsername = email.substringBefore("@")
         val name = payload["name"] as? String ?: extractedUsername
 
+        val detectedCountry = geoIPService.getCountryCode(ipAddress) ?: "US"
+
         var user = userRepository.findByGoogleId(googleId)
             .or { userRepository.findByEmail(email) }
             .orElseGet {
@@ -38,11 +41,18 @@ class GoogleLoginUseCase(
                     email = email,
                     googleId = googleId,
                     deviceId = request.deviceId,
-                    countryCode = request.countryCode,
-                    languageCode = request.languageCode
+                    countryCode = request.countryCode ?: detectedCountry,
+                    languageCode = request.languageCode ?: "en"
                 )
                 userRepository.save(newUser)
             }
+
+        // Update country from IP if detected and existing is default
+        if (user.countryCode == null || user.countryCode == "US") {
+            if (detectedCountry != "US") {
+                user.countryCode = detectedCountry
+            }
+        }
 
         // Link Google ID if found by email
         if (user.googleId == null) {

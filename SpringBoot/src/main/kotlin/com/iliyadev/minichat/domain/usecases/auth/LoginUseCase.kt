@@ -40,19 +40,29 @@ class LoginUseCase(
         // 2. Fallback to Device-based Guest Login
         val deviceId = request.deviceId ?: throw ApiException("INVALID_REQUEST", "DeviceId is required for guest login")
         
+        val detectedCountry = geoIPService.getCountryCode(ipAddress) ?: "US"
+        
         var user = userRepository.findByDeviceId(deviceId)
             .orElseGet {
                 val newUser = User(
                     username = "User_" + UUID.randomUUID().toString().substring(0, 8),
                     deviceId = deviceId,
-                    countryCode = geoIPService.getCountryCode(ipAddress) ?: request.countryCode ?: "US",
+                    countryCode = request.countryCode ?: detectedCountry,
                     languageCode = request.languageCode ?: "en"
                 )
                 userRepository.save(newUser)
             }
 
-        if (user.countryCode != request.countryCode || user.languageCode != request.languageCode) {
-            user.countryCode = request.countryCode
+        // Only update country if the client provides a NEW/DIFFERENT country or if current is default/null
+        val newCountry = request.countryCode.takeIf { !it.isNullOrBlank() } ?: detectedCountry
+        if (user.countryCode == null || user.countryCode == "US" || (user.countryCode != newCountry && !request.countryCode.isNullOrBlank())) {
+            if (newCountry != "US" || user.countryCode == null) {
+                user.countryCode = newCountry
+                userRepository.save(user)
+            }
+        }
+        
+        if (request.languageCode != null && user.languageCode != request.languageCode) {
             user.languageCode = request.languageCode
             userRepository.save(user)
         }

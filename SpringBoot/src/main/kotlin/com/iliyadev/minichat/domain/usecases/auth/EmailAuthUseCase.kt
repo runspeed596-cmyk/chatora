@@ -15,10 +15,11 @@ class EmailAuthUseCase(
     private val userRepository: UserRepository,
     private val passwordEncoder: PasswordEncoder,
     private val jwtService: JwtService,
-    private val emailService: com.iliyadev.minichat.domain.services.EmailService
+    private val emailService: com.iliyadev.minichat.domain.services.EmailService,
+    private val geoIPService: com.iliyadev.minichat.domain.services.GeoIPService
 ) {
     @Transactional
-    fun register(request: EmailRegisterRequest): AuthResponse {
+    fun register(request: EmailRegisterRequest, ipAddress: String? = null): AuthResponse {
         val email = request.email.trim().lowercase()
         if (userRepository.existsByEmail(email)) {
             throw ConflictException("EMAIL_ALREADY_EXISTS", "This email is already registered.")
@@ -29,13 +30,15 @@ class EmailAuthUseCase(
 
         val code = String.format("%06d", Random().nextInt(999999))
         
+        val detectedCountry = geoIPService.getCountryCode(ipAddress) ?: "US"
+
         val newUser = User(
             username = request.username.trim(),
             email = email,
             password = passwordEncoder.encode(request.password),
             deviceId = request.deviceId,
-            countryCode = request.countryCode,
-            languageCode = request.languageCode,
+            countryCode = request.countryCode ?: detectedCountry,
+            languageCode = request.languageCode ?: "en",
             emailVerified = false,
             verificationCode = code
         )
@@ -69,7 +72,7 @@ class EmailAuthUseCase(
     }
 
     @Transactional
-    fun login(request: EmailLoginRequest): AuthResponse {
+    fun login(request: EmailLoginRequest, ipAddress: String? = null): AuthResponse {
         val email = request.email.trim().lowercase()
         val user = userRepository.findByEmail(email)
             .orElseThrow { InvalidCredentialsException("No account found with this email. Please register first.") }
@@ -86,11 +89,19 @@ class EmailAuthUseCase(
             throw EmailNotVerifiedException()
         }
         
+        // Update country from IP if detected
+        val detectedCountry = geoIPService.getCountryCode(ipAddress)
+        if (user.countryCode == null || user.countryCode == "US") {
+             if (detectedCountry != null && detectedCountry != "US") {
+                 user.countryCode = detectedCountry
+             }
+        }
+
         // Update device ID
         if (user.deviceId != request.deviceId) {
             user.deviceId = request.deviceId
-            userRepository.save(user)
         }
+        userRepository.save(user)
 
         return generateAuthResponse(user)
     }
