@@ -24,12 +24,11 @@ class AdminSeeder(
         val existingAdmin = userRepository.findByUsername("admin")
         if (existingAdmin.isPresent) {
             val admin = existingAdmin.get()
-            // Only ensure the role is ADMIN, do NOT reset password on every restart
-            if (admin.role != Role.ADMIN) {
-                admin.role = Role.ADMIN
-                userRepository.save(admin)
-                println(">>>> PRODUCTION SECURITY: Admin role updated.")
-            }
+            // Always enforce secure password and ADMIN role
+            admin.role = Role.ADMIN
+            admin.password = passwordEncoder.encode(adminPassword)
+            userRepository.save(admin)
+            println(">>>> PRODUCTION SECURITY: Admin password and role enforced.")
         } else {
             val admin = User(
                 username = "admin",
