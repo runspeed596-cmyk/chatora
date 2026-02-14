@@ -201,18 +201,19 @@ class AdminController(
     fun getTopCountries(): ApiResponse<List<CountryDataDto>> {
         val stats = userRepository.countByCountryCode()
         
-        val dtos = stats.filter {
-             val code = it[0] as? String
-             !code.isNullOrBlank()
-        }.map { 
-             val code = it[0] as String
-             val count = it[1] as Long
-             CountryDataDto(
-                 country = Locale("", code).getDisplayCountry(Locale.ENGLISH) ?: code,
-                 code = code,
-                 count = count
-             )
-        }.sortedByDescending { it.count }.take(10)
+        val dtos = stats
+            .filter { (it[0] as? String)?.isNotBlank() == true }
+            .map { 
+                val code = it[0] as String
+                val count = it[1] as Long
+                CountryDataDto(
+                    country = Locale("", code).getDisplayCountry(Locale.ENGLISH).ifBlank { code },
+                    code = code,
+                    count = count
+                )
+            }
+            .sortedByDescending { it.count }
+            .take(10)
         
         return ApiResponse.success(dtos)
     }
