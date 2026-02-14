@@ -296,4 +296,12 @@ class MatchService(
     private fun sendSearchingEvent(username: String) {
         messagingTemplate.convertAndSendToUser(username, "/queue/match", mapOf("type" to "SEARCHING"))
     }
+
+    /**
+     * Returns the partner's username for a given user, or null if the user is not in an active match.
+     * Used by SignalController to route signals to the specific partner instead of broadcasting.
+     */
+    fun getPartnerUsername(username: String): String? {
+        return activeMatches[username]
+    }
 }

@@ -54,8 +54,9 @@ class WebSocketManager @Inject constructor(
         Log.d("WebSocket", "OnMessage: $text")
         if (text.startsWith("CONNECTED")) {
             isStompConnected = true
-            // Subscribe to private queue for match notifications
+            // Subscribe to private queues for match notifications and signaling
             subscribe("/user/queue/match")
+            subscribe("/user/queue/call")  // Per-user signaling channel (no more per-match topic subscriptions)
             _events.tryEmit(WebSocketEvent.Connected("connected"))
             
             // FLUSH QUEUE
@@ -96,7 +97,7 @@ class WebSocketManager @Inject constructor(
                 // Robust Destination Check
                 if (destination.contains("/queue/match")) {
                     _events.tryEmit(WebSocketEvent.MatchFound(json.toString()))
-                } else if (destination.contains("/topic/call/")) {
+                } else if (destination.contains("/queue/call") || destination.contains("/topic/call/")) {
                     val type = json.optString("type")
                     val data = json.optString("data", json.toString())
                     _events.tryEmit(WebSocketEvent.Signal(type, data))

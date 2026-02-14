@@ -117,7 +117,8 @@ class MatchController(
 
 @Controller
 class SignalController(
-    private val messagingTemplate: SimpMessagingTemplate
+    private val messagingTemplate: SimpMessagingTemplate,
+    private val matchService: MatchService
 ) {
     private val logger = LoggerFactory.getLogger(SignalController::class.java)
 
@@ -128,13 +129,15 @@ class SignalController(
         principalOpt: java.util.Optional<Principal>
     ) {
         val principal = principalOpt.orElse(null) ?: return
-        // Forward signal to the match topic.
-        // In real app, validate principal is part of matchId via Redis.
-        // Optimization: Don't echo back to sender? Client handles filtering?
-        // Or send to partner specifically.
-        // For MiniChat: "Broadcasting to /topic/call/{matchId} which both subscribe to"
+        val sender = principal.name
         
-        logger.debug("Signal for match $matchId from ${principal.name}: $signal")
-        messagingTemplate.convertAndSend("/topic/call/$matchId", signal)
+        // Send to partner ONLY — prevents echo-back where each peer receives its own signals
+        val partner = matchService.getPartnerUsername(sender)
+        if (partner != null) {
+            logger.debug("Signal for match $matchId from $sender -> $partner: ${signal["type"]}")
+            messagingTemplate.convertAndSendToUser(partner, "/queue/call", signal)
+        } else {
+            logger.warn("Signal for match $matchId from $sender: No active partner found (match may have ended)")
+        }
     }
 }

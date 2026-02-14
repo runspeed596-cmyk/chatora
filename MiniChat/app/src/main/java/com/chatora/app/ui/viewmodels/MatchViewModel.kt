@@ -229,9 +229,13 @@ class MatchViewModel @Inject constructor(
                     }
                     
                     android.util.Log.i("MINICHAT_DEBUG", "PARTNER_LEFT received for active match $eventMatchId. Auto-finding next match...")
-                    stopMatching()
-                    kotlinx.coroutines.delay(1000) // Allow server cleanup to complete
-                    findMatch()
+                    // FIX: Use cleanupCurrentMatch() instead of stopMatching() to avoid
+                    // sending /app/match/leave to server (which would trigger PARTNER_LEFT
+                    // on the other side, creating a cascading re-match loop)
+                    cleanupCurrentMatch()
+                    _matchState.value = MatchUiState.Searching
+                    kotlinx.coroutines.delay(1500) // Allow server cleanup to complete
+                    debouncedFindMatch()
                     return@launch
                 }
                 
@@ -275,8 +279,8 @@ class MatchViewModel @Inject constructor(
                 _remoteVideoReady.value = false
                 launchRetryMechanism()
 
-                // Subscribe to signaling channel
-                callSubscriptionId = repository.subscribe("/topic/call/$currentMatchId")
+                // Subscribe to chat channel only — signaling uses persistent /user/queue/call
+                // (no per-match call subscription needed; eliminates subscription accumulation bug)
                 chatSubscriptionId = repository.subscribe("/topic/chat/$currentMatchId")
 
                 if (initiator) {
@@ -332,12 +336,14 @@ class MatchViewModel @Inject constructor(
         _messages.value = emptyList()
         _remoteVideoReady.value = false
         
-        // OPTIMIZATION: Close old connection and Create NEW PeerConnection IMMEDIATELY
+        // FIX: Clean up old match state WITHOUT sending leave to server
+        // This prevents breaking the partner's active connection
+        cleanupCurrentMatch()
+
+        // Create NEW PeerConnection
         connectionInitJob = viewModelScope.launch {
             try {
                 android.util.Log.d("MINICHAT_DEBUG", "Recreating PeerConnection...")
-                webRtcClient.closePeerConnection()
-                currentMatchId = null
                 webRtcClient.createPeerConnection() 
                 android.util.Log.d("MINICHAT_DEBUG", "PeerConnection recreated.")
             } catch(e: Exception) {
@@ -493,8 +499,13 @@ class MatchViewModel @Inject constructor(
 
 
 
-    fun stopMatching() {
-        android.util.Log.d("MINICHAT_DEBUG", "stopMatching() called")
+    /**
+     * Lightweight cleanup: closes WebRTC + unsubscribes topics WITHOUT sending
+     * /app/match/leave to server. This prevents the cascading PARTNER_LEFT loop.
+     * Used when transitioning between matches (findMatch, PARTNER_LEFT handler).
+     */
+    private fun cleanupCurrentMatch() {
+        android.util.Log.d("MINICHAT_DEBUG", "cleanupCurrentMatch() called")
         
         val mId = currentMatchId
         if (mId != null) {
@@ -502,26 +513,38 @@ class MatchViewModel @Inject constructor(
                 try {
                     apiService.cleanupMatchFiles(mId)
                 } catch (e: Exception) {
-                    android.util.Log.e("MINICHAT_DEBUG", "Cleanup failed", e)
+                    android.util.Log.e("MINICHAT_DEBUG", "File cleanup failed", e)
                 }
             }
         }
 
-        repository.stopMatching(_selectedCountry.value.code, _selectedGender.value)
-        webRtcClient.clearRemoteVideoTrack(null) 
+        webRtcClient.clearRemoteVideoTrack(null)
         webRtcClient.closePeerConnection()
         currentMatchId = null
         _remoteVideoReady.value = false
-        
-        // Reset UI to IDLE and clear messages
-        _matchState.value = MatchUiState.Idle
         _messages.value = emptyList()
-        _hasStarted.value = false
         matchingTimeoutJob?.cancel()
-        callSubscriptionId?.let { repository.unsubscribe(it) }
+        connectionTimeoutJob?.cancel()
+        // Unsubscribe chat topic (call topic is now persistent /user/queue/call)
         chatSubscriptionId?.let { repository.unsubscribe(it) }
-        callSubscriptionId = null
         chatSubscriptionId = null
+    }
+
+    /**
+     * Full stop: sends /app/match/leave to server AND cleans up locally.
+     * Used when user explicitly presses Stop or navigates away.
+     */
+    fun stopMatching() {
+        android.util.Log.d("MINICHAT_DEBUG", "stopMatching() called")
+        
+        cleanupCurrentMatch()
+        
+        // Notify server to remove us from queue/match
+        repository.stopMatching(_selectedCountry.value.code, _selectedGender.value)
+        
+        // Reset UI to IDLE
+        _matchState.value = MatchUiState.Idle
+        _hasStarted.value = false
     }
 
     fun nextMatch() {
