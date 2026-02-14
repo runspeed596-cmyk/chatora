@@ -55,10 +55,32 @@ class MatchService(
     private val userMatchIds = ConcurrentHashMap<String, String>() // username -> matchId
     private val lastMatchedUsers = ConcurrentHashMap<UUID, UUID>() // userId -> lastMatchedUserId (Spec requirement)
 
+    // ANTI-CYCLING: Server-side protection against duplicate joinQueue requests
+    private val lastJoinTime = ConcurrentHashMap<String, Long>() // username -> timestamp
+    private val matchCreatedTime = ConcurrentHashMap<String, Long>() // username -> timestamp when match was created
+    private val JOIN_COOLDOWN_MS = 3000L // Reject joinQueue within 3s of last call
+    private val MATCH_PROTECTION_MS = 2000L // Don't break matches younger than 2s
+
     private val matchLock = ReentrantLock()
 
     fun findMatch(userId: String, username: String, myCountry: String, targetCountry: String, targetGender: String, lang: String, sessionId: String, isPremium: Boolean, gender: String, karma: Int, ipAddress: String) {
         val uId = UUID.fromString(userId)
+        val now = System.currentTimeMillis()
+        
+        // ANTI-CYCLING: Reject duplicate joinQueue within cooldown period
+        val lastJoin = lastJoinTime[username]
+        if (lastJoin != null && (now - lastJoin) < JOIN_COOLDOWN_MS) {
+            logger.warn("joinQueue REJECTED for $username: cooldown active (${now - lastJoin}ms since last join)")
+            return
+        }
+        lastJoinTime[username] = now
+        
+        // ANTI-CYCLING: Don't break a match that was just created
+        val matchCreated = matchCreatedTime[username]
+        if (matchCreated != null && (now - matchCreated) < MATCH_PROTECTION_MS && activeMatches.containsKey(username)) {
+            logger.warn("joinQueue REJECTED for $username: match protection active (match created ${now - matchCreated}ms ago)")
+            return
+        }
         
         // Ensure clean state before joining
         handleUserLeave(username, userId, sessionId)
@@ -257,6 +279,11 @@ class MatchService(
         activeMatches[u2.username] = u1.username
         userMatchIds[u1.username] = matchId
         userMatchIds[u2.username] = matchId
+        
+        // ANTI-CYCLING: Record when match was created to protect it from immediate destruction
+        val matchTime = System.currentTimeMillis()
+        matchCreatedTime[u1.username] = matchTime
+        matchCreatedTime[u2.username] = matchTime
 
         removeFromPools(u1.userId)
         removeFromPools(u2.userId)
@@ -278,11 +305,13 @@ class MatchService(
 
         val partnerUsername = activeMatches.remove(username)
         val matchId = userMatchIds.remove(username)
+        matchCreatedTime.remove(username) // Clean up match protection data
         
         if (matchId != null) storageService.cleanup(matchId)
 
         if (partnerUsername != null) {
             activeMatches.remove(partnerUsername)
+            matchCreatedTime.remove(partnerUsername) // Clean up partner's match protection data
             val partnerMatchId = userMatchIds.remove(partnerUsername) ?: "none"
             logger.info("Match ended: $partnerUsername's partner ($username) left. matchId=$partnerMatchId")
             messagingTemplate.convertAndSendToUser(partnerUsername, "/queue/match", MatchEvent(type = "PARTNER_LEFT", matchId = partnerMatchId, partnerId = "none", partnerUsername = "none", initiator = false))
@@ -290,6 +319,9 @@ class MatchService(
     }
 
     fun removeUserFromQueue(userId: String, username: String, country: String, lang: String, sessionId: String) {
+        // Explicit leave (Stop button) — clear all cooldowns so user can re-join freely
+        lastJoinTime.remove(username)
+        matchCreatedTime.remove(username)
         handleUserLeave(username, userId, sessionId)
     }
 
