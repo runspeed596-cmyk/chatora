@@ -83,9 +83,15 @@ class WebSocketConfig(
                 val accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor::class.java)
                 
                 if (StompCommand.CONNECT == accessor?.command) {
-                    // Extract IP for GeoIP (Requirement Point 1)
-                    val ip = accessor.getFirstNativeHeader("X-Forwarded-For") ?: "127.0.0.1"
-                    accessor.sessionAttributes?.put("IP_ADDRESS", ip)
+                    // Only override IP if the handshake interceptor didn't already capture a real one
+                    val existingIp = accessor.sessionAttributes?.get("IP_ADDRESS") as? String
+                    if (existingIp.isNullOrEmpty() || existingIp == "127.0.0.1" || existingIp == "0:0:0:0:0:0:0:1") {
+                        val ip = accessor.getFirstNativeHeader("X-Forwarded-For")
+                            ?: accessor.getFirstNativeHeader("X-Real-IP")
+                            ?: existingIp
+                            ?: "127.0.0.1"
+                        accessor.sessionAttributes?.put("IP_ADDRESS", ip)
+                    }
 
                     val authHeader = accessor.getFirstNativeHeader("Authorization")
                     if (authHeader != null && authHeader.startsWith("Bearer ")) {
