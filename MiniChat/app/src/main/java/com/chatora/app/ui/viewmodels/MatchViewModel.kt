@@ -237,14 +237,14 @@ class MatchViewModel @Inject constructor(
                     isPremium = false
                 )
 
-                // Parse partner IP and country from server response
-                val partnerIp = json.optString("partnerIp", "")
+                // Parse partner country from server response (IP is never sent for privacy)
                 val partnerCountryCode = json.optString("partnerCountryCode", "")
+                val partnerCountryName = json.optString("partnerCountryName", "")
                 
                 _matchState.value = MatchUiState.Found(
                     partner = partnerUser,
-                    partnerIp = partnerIp,
-                    partnerCountryCode = partnerCountryCode
+                    partnerCountryCode = partnerCountryCode,
+                    partnerCountryName = partnerCountryName
                 )
                 android.util.Log.d("MINICHAT_DEBUG", "UI State updated to Found")
 
@@ -593,8 +593,8 @@ sealed class MatchUiState {
     object Searching : MatchUiState()
     data class Found(
         val partner: User,
-        val partnerIp: String = "",
-        val partnerCountryCode: String = ""
+        val partnerCountryCode: String = "",
+        val partnerCountryName: String = ""
     ) : MatchUiState()
     data class Error(val message: String) : MatchUiState()
 }

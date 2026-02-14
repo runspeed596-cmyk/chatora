@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -182,8 +183,8 @@ fun HomeScreen(
                     val foundState = uiState as? MatchUiState.Found
                     PremiumChatArea(
                         messages = messages,
-                        partnerIp = foundState?.partnerIp ?: "",
                         partnerCountryCode = foundState?.partnerCountryCode ?: "",
+                        partnerCountryName = foundState?.partnerCountryName ?: "",
                         onMediaClick = { url, type ->
                             selectedMediaUrl = url
                             selectedMediaType = type
@@ -735,8 +736,8 @@ fun GenderOptionCard(
 @Composable
 fun PremiumChatArea(
     messages: List<ChatMessage>,
-    partnerIp: String = "",
     partnerCountryCode: String = "",
+    partnerCountryName: String = "",
     onMediaClick: (String, String) -> Unit = { _, _ -> }
 ) {
     val listState = rememberLazyListState()
@@ -744,80 +745,64 @@ fun PremiumChatArea(
         if (messages.isNotEmpty()) listState.animateScrollToItem(messages.size - 1)
     }
 
-    val showPartnerInfo = partnerIp.isNotEmpty() || partnerCountryCode.isNotEmpty()
-
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(bottom = 16.dp)
-    ) {
-        // Compact partner info as first item in chat
-        if (showPartnerInfo) {
-            item(key = "partner_info") {
-                PartnerInfoBar(partnerIp = partnerIp, partnerCountryCode = partnerCountryCode)
-            }
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Country watermark — centered behind messages at low opacity
+        if (partnerCountryCode.isNotEmpty() && partnerCountryCode != "UNKNOWN") {
+            CountryWatermark(
+                countryCode = partnerCountryCode,
+                countryName = partnerCountryName
+            )
         }
-        items(messages) { msg ->
-            PremiumChatBubble(msg, onMediaClick = onMediaClick)
+
+        // Messages on top of watermark
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            items(messages) { msg ->
+                PremiumChatBubble(msg, onMediaClick = onMediaClick)
+            }
         }
     }
 }
 
+/**
+ * A subtle, centered watermark showing the partner's country flag and name.
+ * Displayed in the middle of the chat area with very low opacity (~15%)
+ * so it doesn't interfere with reading messages.
+ */
 @Composable
-fun PartnerInfoBar(partnerIp: String, partnerCountryCode: String) {
-    // Lookup country flag from StaticData
-    val country = if (partnerCountryCode.isNotEmpty()) {
-        com.chatora.app.data.StaticData.getCountries().find { 
-            it.code.equals(partnerCountryCode, ignoreCase = true) 
-        }
-    } else null
-    
-    // Partially mask IP for privacy: show first and last octet, mask middle
-    val maskedIp = if (partnerIp.isNotEmpty()) {
-        val parts = partnerIp.split(".")
-        if (parts.size == 4) {
-            "${parts[0]}.***.***.${parts[3]}"
-        } else partnerIp
-    } else ""
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.Center
+fun CountryWatermark(countryCode: String, countryName: String) {
+    // Lookup flag emoji from StaticData
+    val country = com.chatora.app.data.StaticData.getCountries().find {
+        it.code.equals(countryCode, ignoreCase = true)
+    }
+    val flag = country?.flag ?: "🌐" // 🌐 globe fallback
+    val displayName = if (countryName.isNotEmpty()) countryName
+        else country?.let { stringResource(it.nameRes) }
+        ?: countryCode
+
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
     ) {
-        if (country != null) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.alpha(0.15f)
+        ) {
             Text(
-                text = country.flag,
-                fontSize = 14.sp
+                text = flag,
+                fontSize = 48.sp
             )
-            Spacer(Modifier.width(6.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(country.nameRes),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 11.sp
-            )
-        }
-        if (maskedIp.isNotEmpty()) {
-            if (country != null) {
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = "•",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    fontSize = 10.sp
-                )
-                Spacer(Modifier.width(12.dp))
-            }
-            Text(
-                text = maskedIp,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                fontSize = 11.sp,
-                fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                text = displayName,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                letterSpacing = 1.sp
             )
         }
     }
