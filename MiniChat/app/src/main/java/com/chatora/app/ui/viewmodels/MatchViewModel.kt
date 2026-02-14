@@ -214,11 +214,25 @@ class MatchViewModel @Inject constructor(
                 
                 
                 if (type == "PARTNER_LEFT") {
-                   android.util.Log.i("MINICHAT_DEBUG", "PARTNER_LEFT received. Auto-finding next match...")
-                   stopMatching()
-                   kotlinx.coroutines.delay(500)
-                   findMatch()
-                   return@launch
+                    val eventMatchId = json.optString("matchId", "none")
+                    
+                    // CRITICAL FIX: Ignore stale PARTNER_LEFT events that don't match current active match
+                    // This prevents the rapid cycling race condition where old cleanup events
+                    // break the newly established match.
+                    if (eventMatchId == "none" || eventMatchId.isEmpty()) {
+                        android.util.Log.w("MINICHAT_DEBUG", "PARTNER_LEFT ignored: matchId is 'none' (stale event from previous cycle)")
+                        return@launch
+                    }
+                    if (currentMatchId != null && eventMatchId != currentMatchId) {
+                        android.util.Log.w("MINICHAT_DEBUG", "PARTNER_LEFT ignored: matchId=$eventMatchId doesn't match current=$currentMatchId")
+                        return@launch
+                    }
+                    
+                    android.util.Log.i("MINICHAT_DEBUG", "PARTNER_LEFT received for active match $eventMatchId. Auto-finding next match...")
+                    stopMatching()
+                    kotlinx.coroutines.delay(1000) // Allow server cleanup to complete
+                    findMatch()
+                    return@launch
                 }
                 
                 if (type == "SEARCHING") {

@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.locks.ReentrantLock
 
 @Service
 class MatchService(
@@ -54,8 +55,7 @@ class MatchService(
     private val userMatchIds = ConcurrentHashMap<String, String>() // username -> matchId
     private val lastMatchedUsers = ConcurrentHashMap<UUID, UUID>() // userId -> lastMatchedUserId (Spec requirement)
 
-    @Volatile
-    private var isMatching = false
+    private val matchLock = ReentrantLock()
 
     fun findMatch(userId: String, username: String, myCountry: String, targetCountry: String, targetGender: String, lang: String, sessionId: String, isPremium: Boolean, gender: String, karma: Int, ipAddress: String) {
         val uId = UUID.fromString(userId)
@@ -108,13 +108,17 @@ class MatchService(
 
     @Scheduled(fixedDelay = 500)
     fun matchEngine() {
-        if (isMatching || waiters.isEmpty()) return
-        isMatching = true
+        if (waiters.isEmpty()) return
+        if (!matchLock.tryLock()) {
+            logger.debug("matchEngine: Skipped (another thread is matching)")
+            return
+        }
 
         try {
             val matchedIds = mutableSetOf<UUID>()
-            // Sort by Premium Priority for fair cycles
             val sortedWaiters = waiters.values.toList().sortedByDescending { it.isPremium }
+
+            logger.info("matchEngine: Running with ${sortedWaiters.size} waiters: ${sortedWaiters.map { "${it.username}(${it.userId.toString().take(8)})" }}")
 
             for (u1 in sortedWaiters) {
                 if (matchedIds.contains(u1.userId) || !waiters.containsKey(u1.userId)) continue
@@ -124,12 +128,14 @@ class MatchService(
                     matchedIds.add(u1.userId)
                     matchedIds.add(partner.userId)
                     executeMatch(u1, partner)
+                } else {
+                    logger.info("matchEngine: No partner found for ${u1.username} (waitTime=${Instant.now().toEpochMilli() - u1.joinedAt}ms)")
                 }
             }
         } catch (e: Exception) {
-            logger.error("MatchEngine Error: ${e.message}")
+            logger.error("MatchEngine Error: ${e.message}", e)
         } finally {
-            isMatching = false
+            matchLock.unlock()
         }
     }
 
@@ -182,24 +188,43 @@ class MatchService(
 
     private fun isValidMatch(u1: WaitingUser, u2: WaitingUser, strict: Boolean): Boolean {
         // Anti-Abuse Rules (Spec mandatory)
-        if (u1.userId == u2.userId) return false
+        if (u1.userId == u2.userId) {
+            logger.debug("isValidMatch REJECTED: same userId (${u1.username})")
+            return false
+        }
         // Block same-IP matching only for public IPs (private/Docker IPs are shared and unreliable)
-        if (u1.ipAddress == u2.ipAddress && !isPrivateOrLocalIp(u1.ipAddress)) return false
+        if (u1.ipAddress == u2.ipAddress && !isPrivateOrLocalIp(u1.ipAddress)) {
+            logger.debug("isValidMatch REJECTED: same public IP ${u1.ipAddress} (${u1.username} vs ${u2.username})")
+            return false
+        }
         
         // Repeat Prevention (Spec mandatory)
         // LOOSENED FOR SMALL POOLS: If only 2 people, allow matching again to prevent deadlocks in testing
         if (waiters.size > 2) {
-            if (u1.lastMatchedUserId == u2.userId || u2.lastMatchedUserId == u1.userId) return false
+            if (u1.lastMatchedUserId == u2.userId || u2.lastMatchedUserId == u1.userId) {
+                logger.debug("isValidMatch REJECTED: repeat match (${u1.username} vs ${u2.username})")
+                return false
+            }
         }
 
         if (strict) {
             // Honor Partner's Preferences in strict mode
-            if (u2.preferredGender != "ALL" && u2.preferredGender != u1.gender) return false
-            if (u2.preferredCountry != "*" && u2.preferredCountry != "AUTO" && u2.preferredCountry != u1.country) return false
+            if (u2.preferredGender != "ALL" && u2.preferredGender != u1.gender) {
+                logger.debug("isValidMatch REJECTED: gender mismatch (${u1.username}=${u1.gender} vs ${u2.username} prefers ${u2.preferredGender})")
+                return false
+            }
+            if (u2.preferredCountry != "*" && u2.preferredCountry != "AUTO" && u2.preferredCountry != u1.country) {
+                logger.debug("isValidMatch REJECTED: country mismatch (${u1.username}=${u1.country} vs ${u2.username} prefers ${u2.preferredCountry})")
+                return false
+            }
             // Karma check for quality
-            if (Math.abs(u1.karma - u2.karma) > 70) return false
+            if (Math.abs(u1.karma - u2.karma) > 70) {
+                logger.debug("isValidMatch REJECTED: karma gap (${u1.username}=${u1.karma} vs ${u2.username}=${u2.karma})")
+                return false
+            }
         }
 
+        logger.info("isValidMatch ACCEPTED: ${u1.username} <-> ${u2.username}")
         return true
     }
 
@@ -258,9 +283,9 @@ class MatchService(
 
         if (partnerUsername != null) {
             activeMatches.remove(partnerUsername)
-            userMatchIds.remove(partnerUsername)
-            logger.info("Match ended: $partnerUsername's partner ($username) left.")
-            messagingTemplate.convertAndSendToUser(partnerUsername, "/queue/match", MatchEvent(type = "PARTNER_LEFT", matchId = "none", partnerId = "none", partnerUsername = "none", initiator = false))
+            val partnerMatchId = userMatchIds.remove(partnerUsername) ?: "none"
+            logger.info("Match ended: $partnerUsername's partner ($username) left. matchId=$partnerMatchId")
+            messagingTemplate.convertAndSendToUser(partnerUsername, "/queue/match", MatchEvent(type = "PARTNER_LEFT", matchId = partnerMatchId, partnerId = "none", partnerUsername = "none", initiator = false))
         }
     }
 
