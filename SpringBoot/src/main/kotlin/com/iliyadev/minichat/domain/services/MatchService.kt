@@ -183,7 +183,8 @@ class MatchService(
     private fun isValidMatch(u1: WaitingUser, u2: WaitingUser, strict: Boolean): Boolean {
         // Anti-Abuse Rules (Spec mandatory)
         if (u1.userId == u2.userId) return false
-        if (u1.ipAddress == u2.ipAddress && u1.ipAddress != "127.0.0.1") return false
+        // Block same-IP matching only for public IPs (private/Docker IPs are shared and unreliable)
+        if (u1.ipAddress == u2.ipAddress && !isPrivateOrLocalIp(u1.ipAddress)) return false
         
         // Repeat Prevention (Spec mandatory)
         // LOOSENED FOR SMALL POOLS: If only 2 people, allow matching again to prevent deadlocks in testing
@@ -200,6 +201,23 @@ class MatchService(
         }
 
         return true
+    }
+
+    /**
+     * Checks if an IP is private/local (RFC 1918, loopback, Docker bridge).
+     * These IPs are shared by multiple users behind NAT/Docker and cannot reliably identify distinct users.
+     */
+    private fun isPrivateOrLocalIp(ip: String): Boolean {
+        return ip.startsWith("127.") ||
+                ip.startsWith("10.") ||
+                ip.startsWith("192.168.") ||
+                ip == "0:0:0:0:0:0:0:1" ||
+                ip == "::1" ||
+                // Docker bridge networks: 172.16.0.0 - 172.31.255.255
+                (ip.startsWith("172.") && run {
+                    val secondOctet = ip.split(".").getOrNull(1)?.toIntOrNull() ?: -1
+                    secondOctet in 16..31
+                })
     }
 
     private fun executeMatch(u1: WaitingUser, u2: WaitingUser) {
