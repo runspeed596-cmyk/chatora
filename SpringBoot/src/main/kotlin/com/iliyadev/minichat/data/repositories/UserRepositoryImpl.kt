@@ -21,6 +21,15 @@ interface JpaUserRepo : JpaRepository<User, UUID> {
 
     @org.springframework.data.jpa.repository.Query("SELECT u.countryCode, COUNT(u) as count FROM User u GROUP BY u.countryCode")
     fun countByCountryCode(): List<Array<Any>>
+
+    // Admin search & filter
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%'))")
+    fun searchByUsernameOrEmail(@org.springframework.data.repository.query.Param("search") search: String, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User>
+
+    fun findByIsBanned(isBanned: Boolean, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User>
+
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM User u WHERE u.isBanned = :isBanned AND (LOWER(u.username) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(u.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    fun searchByUsernameOrEmailAndIsBanned(@org.springframework.data.repository.query.Param("search") search: String, @org.springframework.data.repository.query.Param("isBanned") isBanned: Boolean, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User>
 }
 
 @Component
@@ -53,4 +62,14 @@ class UserRepositoryImpl(
     override fun countByUpdatedAtAfter(date: java.time.LocalDateTime): Long = jpaRepo.countByUpdatedAtAfter(date)
 
     override fun countByCountryCode(): List<Array<Any>> = jpaRepo.countByCountryCode()
+
+    override fun searchByUsernameOrEmail(search: String, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User> =
+        jpaRepo.searchByUsernameOrEmail(search, pageable)
+
+    override fun findByIsBanned(isBanned: Boolean, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User> =
+        jpaRepo.findByIsBanned(isBanned, pageable)
+
+    override fun searchByUsernameOrEmailAndIsBanned(search: String, isBanned: Boolean, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User> =
+        jpaRepo.searchByUsernameOrEmailAndIsBanned(search, isBanned, pageable)
 }
+

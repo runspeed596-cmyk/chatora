@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { UserFilter, UserListResponse } from '../types/user';
+import type { UserFilter, UserListResponse, CreateUserRequest } from '../types/user';
 
 export const userService = {
     getUsers: async (filter: UserFilter): Promise<UserListResponse> => {
@@ -13,6 +13,10 @@ export const userService = {
         return response.data.data;
     },
 
+    createUser: async (data: CreateUserRequest): Promise<void> => {
+        await api.post('/admin/users', data);
+    },
+
     blockUser: async (userId: string): Promise<void> => {
         await api.post(`/admin/users/${userId}/block`);
     },
@@ -23,5 +27,13 @@ export const userService = {
 
     deleteUser: async (userId: string): Promise<void> => {
         await api.delete(`/admin/users/${userId}`);
+    },
+
+    upgradeUser: async (userId: string): Promise<void> => {
+        await api.post(`/admin/users/${userId}/upgrade`);
+    },
+
+    downgradeUser: async (userId: string): Promise<void> => {
+        await api.post(`/admin/users/${userId}/downgrade`);
     }
 };

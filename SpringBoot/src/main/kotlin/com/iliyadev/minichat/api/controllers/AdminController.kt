@@ -2,14 +2,17 @@ package com.iliyadev.minichat.api.controllers
 
 import com.iliyadev.minichat.api.dtos.*
 import com.iliyadev.minichat.core.response.ApiResponse
+import com.iliyadev.minichat.domain.entities.Gender
 import com.iliyadev.minichat.domain.entities.PaymentStatus
 import com.iliyadev.minichat.domain.entities.Role
 import com.iliyadev.minichat.domain.entities.SubscriptionPlan
+import com.iliyadev.minichat.domain.entities.User
 import com.iliyadev.minichat.domain.repositories.PaymentTransactionRepository
 import com.iliyadev.minichat.domain.repositories.SubscriptionPlanRepository
 import com.iliyadev.minichat.domain.repositories.UserRepository
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 import java.util.*
@@ -19,8 +22,11 @@ import java.util.*
 class AdminController(
     private val userRepository: UserRepository,
     private val subscriptionPlanRepository: SubscriptionPlanRepository,
-    private val paymentTransactionRepository: PaymentTransactionRepository
+    private val paymentTransactionRepository: PaymentTransactionRepository,
+    private val passwordEncoder: PasswordEncoder
 ) {
+
+    // ─── Stats ───────────────────────────────────────────────────────────────────
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @GetMapping("/stats")
@@ -37,8 +43,6 @@ class AdminController(
         val oneMonthAgo = LocalDateTime.now().minusMonths(1)
         val monthlyRevenue = paymentTransactionRepository.sumAmountByStatusAndUpdatedAtAfter(PaymentStatus.SUCCESS, oneMonthAgo) ?: 0.0
 
-
-
         return ApiResponse.success(
             AdminStatsDto(
                 totalUsers = totalUsers,
@@ -53,6 +57,8 @@ class AdminController(
         )
     }
 
+    // ─── Users ───────────────────────────────────────────────────────────────────
+
     @GetMapping("/users")
     fun getUsers(
         @RequestParam(defaultValue = "1") page: Int,
@@ -62,21 +68,19 @@ class AdminController(
     ): ApiResponse<AdminUserListResponse> {
         val pageNumber = if (page > 0) page - 1 else 0
         val pageable = PageRequest.of(pageNumber, limit, Sort.by("createdAt").descending())
-        val userPage = userRepository.findAll(pageable)
-        
-        val dtos = userPage.content.map { user ->
-            AdminUserDto(
-                id = user.id.toString(),
-                username = user.username,
-                email = user.email,
-                role = user.role?.name ?: "USER",
-                status = if (user.isBanned) "BLOCKED" else "ACTIVE",
-                subscriptionType = if (user.isPremium) "PREMIUM" else "FREE",
-                registrationDate = user.createdAt,
-                lastLogin = user.updatedAt,
-                ipAddress = "127.0.0.1"
-            )
+
+        val hasSearch = !search.isNullOrBlank()
+        val isBanned = status == "BLOCKED"
+        val hasStatus = status != null && status != "ALL"
+
+        val userPage = when {
+            hasSearch && hasStatus -> userRepository.searchByUsernameOrEmailAndIsBanned(search!!, isBanned, pageable)
+            hasSearch -> userRepository.searchByUsernameOrEmail(search!!, pageable)
+            hasStatus -> userRepository.findByIsBanned(isBanned, pageable)
+            else -> userRepository.findAll(pageable)
         }
+        
+        val dtos = userPage.content.map { user -> user.toAdminDto() }
 
         return ApiResponse.success(
             AdminUserListResponse(
@@ -86,6 +90,29 @@ class AdminController(
                 totalPages = userPage.totalPages
             )
         )
+    }
+
+    @PostMapping("/users")
+    fun createUser(@RequestBody request: CreateUserRequest): ApiResponse<AdminUserDto> {
+        // Validate uniqueness
+        if (userRepository.existsByUsername(request.username)) {
+            throw RuntimeException("Username '${request.username}' already exists")
+        }
+        if (!request.email.isNullOrBlank() && userRepository.existsByEmail(request.email)) {
+            throw RuntimeException("Email '${request.email}' already exists")
+        }
+
+        val user = User(
+            username = request.username,
+            email = request.email,
+            password = passwordEncoder.encode(request.password),
+            deviceId = "admin-created-${UUID.randomUUID()}",
+            role = if (request.role == "ADMIN") Role.ADMIN else Role.USER,
+            gender = try { Gender.valueOf(request.gender.uppercase()) } catch (_: Exception) { Gender.UNSPECIFIED }
+        )
+
+        val savedUser = userRepository.save(user)
+        return ApiResponse.success(savedUser.toAdminDto())
     }
 
     @PostMapping("/users/{id}/block")
@@ -109,6 +136,26 @@ class AdminController(
         userRepository.deleteById(id)
         return ApiResponse.success("User deleted")
     }
+
+    @PostMapping("/users/{id}/upgrade")
+    fun upgradeUser(@PathVariable id: UUID): ApiResponse<AdminUserDto> {
+        val user = userRepository.findById(id).orElseThrow { RuntimeException("User not found") }
+        user.isPremium = true
+        user.premiumUntil = LocalDateTime.now().plusDays(30)
+        val saved = userRepository.save(user)
+        return ApiResponse.success(saved.toAdminDto())
+    }
+
+    @PostMapping("/users/{id}/downgrade")
+    fun downgradeUser(@PathVariable id: UUID): ApiResponse<AdminUserDto> {
+        val user = userRepository.findById(id).orElseThrow { RuntimeException("User not found") }
+        user.isPremium = false
+        user.premiumUntil = null
+        val saved = userRepository.save(user)
+        return ApiResponse.success(saved.toAdminDto())
+    }
+
+    // ─── Transactions ────────────────────────────────────────────────────────────
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
     @GetMapping("/transactions")
@@ -134,7 +181,6 @@ class AdminController(
     @GetMapping("/stats/revenue-history")
     fun getRevenueHistory(): ApiResponse<List<RevenueDataDto>> {
         val oneWeekAgo = LocalDateTime.now().minusDays(7)
-        // Optimization: Use findAll with date filter if possible, but for 7 days simple is fine
         val transactions = paymentTransactionRepository.findAll()
             .filter { it.status == PaymentStatus.SUCCESS && it.updatedAt.isAfter(oneWeekAgo) }
         
@@ -168,6 +214,8 @@ class AdminController(
         return ApiResponse.success(dtos)
     }
 
+    // ─── Subscriptions ───────────────────────────────────────────────────────────
+
     @GetMapping("/subscriptions")
     fun getSubscriptions(): ApiResponse<List<SubscriptionPlan>> {
         return ApiResponse.success(subscriptionPlanRepository.findAll())
@@ -181,4 +229,20 @@ class AdminController(
         subscriptionPlanRepository.save(plan)
         return ApiResponse.success("Plan updated successfully")
     }
+
+    // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+    private fun User.toAdminDto() = AdminUserDto(
+        id = this.id.toString(),
+        username = this.username,
+        email = this.email,
+        role = this.role?.name ?: "USER",
+        status = if (this.isBanned) "BLOCKED" else "ACTIVE",
+        subscriptionType = if (this.isPremium) "PREMIUM" else "FREE",
+        isPremium = this.isPremium,
+        premiumUntil = this.premiumUntil,
+        registrationDate = this.createdAt,
+        lastLogin = this.updatedAt,
+        ipAddress = null
+    )
 }

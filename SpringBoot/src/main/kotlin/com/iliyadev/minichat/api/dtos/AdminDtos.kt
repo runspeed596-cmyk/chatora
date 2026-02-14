@@ -22,6 +22,8 @@ data class AdminUserDto(
     val role: String,
     val status: String, // ACTIVE, BLOCKED
     val subscriptionType: String,
+    val isPremium: Boolean,
+    val premiumUntil: LocalDateTime?,
     val registrationDate: LocalDateTime,
     val lastLogin: LocalDateTime,
     val ipAddress: String?
@@ -32,6 +34,14 @@ data class AdminUserListResponse(
     val total: Long,
     val page: Int,
     val totalPages: Int
+)
+
+data class CreateUserRequest(
+    val username: String,
+    val email: String?,
+    val password: String,
+    val role: String = "USER",
+    val gender: String = "UNSPECIFIED"
 )
 
 data class AdminTransactionDto(
@@ -56,3 +66,4 @@ data class CountryDataDto(
     val code: String,
     val count: Long
 )
+

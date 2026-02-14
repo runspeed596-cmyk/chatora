@@ -20,4 +20,9 @@ interface UserRepository {
     fun deleteById(id: UUID)
     fun countByUpdatedAtAfter(date: java.time.LocalDateTime): Long
     fun countByCountryCode(): List<Array<Any>>
+
+    // Admin search & filter
+    fun searchByUsernameOrEmail(search: String, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User>
+    fun findByIsBanned(isBanned: Boolean, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User>
+    fun searchByUsernameOrEmailAndIsBanned(search: String, isBanned: Boolean, pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<User>
 }
