@@ -7,8 +7,8 @@ data class UserDto(
     val googleId: String?,
     val karma: Int,
     val diamonds: Int,
-    val countryCode: String,
-    val languageCode: String,
+    val countryCode: String?,
+    val languageCode: String?,
     val gender: String,
     val isPremium: Boolean,
     val isBanned: Boolean

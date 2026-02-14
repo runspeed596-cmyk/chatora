@@ -55,7 +55,7 @@ class MatchController(
         val ipAddress = headerAccessor.getSessionAttributes()?.get("IP_ADDRESS") as? String ?: "127.0.0.1"
         
         val myCountry = if (request.myCountry == "AUTO") {
-             geoIPService.getCountryCode(ipAddress) 
+             geoIPService.getCountryCode(ipAddress) ?: "US"
         } else {
              request.myCountry
         }

@@ -28,8 +28,8 @@ class UserController(
             googleId = user.googleId,
             karma = user.karma,
             diamonds = user.diamonds,
-            countryCode = user.countryCode,
-            languageCode = user.languageCode,
+            countryCode = user.countryCode ?: "US",
+            languageCode = user.languageCode ?: "en",
             gender = user.gender.name,
             isPremium = subscriptionService.isPremiumUser(user.id!!),
             isBanned = user.isBanned
