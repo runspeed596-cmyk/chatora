@@ -188,6 +188,7 @@ class MatchService(
 
         // Attempt 4: Random Fallback (3000-5000ms)
         if (waitTime > 3000 || isSmallPool) {
+            logger.info("searchTiers[${u1.username}]: Attempt4 globalPool.size=${globalPool.size}, contents=$globalPool")
             return findInPool(u1, globalPool, alreadyMatched, strict = false)
         }
 
@@ -195,12 +196,18 @@ class MatchService(
     }
 
     private fun findInPool(u1: WaitingUser, pool: Set<UUID>?, alreadyMatched: Set<UUID>, strict: Boolean): WaitingUser? {
-        if (pool == null || pool.isEmpty()) return null
+        if (pool == null || pool.isEmpty()) {
+            logger.info("findInPool[${u1.username}]: pool is null/empty")
+            return null
+        }
         
         synchronized(pool) {
+            logger.info("findInPool[${u1.username}]: pool.size=${pool.size}, strict=$strict, alreadyMatched=$alreadyMatched")
             for (pId in pool) {
-                if (pId == u1.userId || alreadyMatched.contains(pId)) continue
-                val u2 = waiters[pId] ?: continue
+                if (pId == u1.userId) { logger.info("findInPool[${u1.username}]: skipping self ($pId)"); continue }
+                if (alreadyMatched.contains(pId)) { logger.info("findInPool[${u1.username}]: skipping alreadyMatched ($pId)"); continue }
+                val u2 = waiters[pId]
+                if (u2 == null) { logger.info("findInPool[${u1.username}]: pId=$pId NOT in waiters!"); continue }
                 
                 if (isValidMatch(u1, u2, strict)) return u2
             }
