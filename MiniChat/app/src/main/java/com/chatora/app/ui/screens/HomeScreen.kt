@@ -746,32 +746,48 @@ fun PremiumChatArea(
 
     val showPartnerInfo = partnerIp.isNotEmpty() || partnerCountryCode.isNotEmpty()
 
-    LazyColumn(
-        state = listState,
-        modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        contentPadding = PaddingValues(bottom = 16.dp)
-    ) {
-        // Compact partner info as first item in chat
-        if (showPartnerInfo) {
-            item(key = "partner_info") {
-                PartnerInfoBar(partnerIp = partnerIp, partnerCountryCode = partnerCountryCode)
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(
+                top = if (showPartnerInfo) 36.dp else 0.dp,
+                bottom = 16.dp
+            )
+        ) {
+            items(messages) { msg ->
+                PremiumChatBubble(msg, onMediaClick = onMediaClick)
             }
         }
-        items(messages) { msg ->
-            PremiumChatBubble(msg, onMediaClick = onMediaClick)
+
+        // Fixed overlay at top — doesn't scroll with messages
+        if (showPartnerInfo) {
+            PartnerInfoBar(
+                partnerIp = partnerIp,
+                partnerCountryCode = partnerCountryCode,
+                modifier = Modifier.align(Alignment.TopCenter)
+            )
         }
     }
 }
 
 @Composable
-fun PartnerInfoBar(partnerIp: String, partnerCountryCode: String) {
+fun PartnerInfoBar(
+    partnerIp: String,
+    partnerCountryCode: String,
+    modifier: Modifier = Modifier
+) {
     // Lookup country flag from StaticData
     val country = if (partnerCountryCode.isNotEmpty()) {
         com.chatora.app.data.StaticData.getCountries().find { 
             it.code.equals(partnerCountryCode, ignoreCase = true) 
         }
     } else null
+    
+    // Fallback flag/name when country code is unknown or not found
+    val flagText = country?.flag ?: "🌍"
+    val countryName = country?.let { stringResource(it.nameRes) } ?: ""
     
     // Partially mask IP for privacy: show first and last octet, mask middle
     val maskedIp = if (partnerIp.isNotEmpty()) {
@@ -782,41 +798,43 @@ fun PartnerInfoBar(partnerIp: String, partnerCountryCode: String) {
     } else ""
     
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-            .padding(horizontal = 12.dp, vertical = 4.dp),
+        modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .graphicsLayer { alpha = 0.75f }
+            .background(
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
+            )
+            .padding(horizontal = 14.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Center
     ) {
-        if (country != null) {
+        Text(
+            text = flagText,
+            fontSize = 13.sp
+        )
+        if (countryName.isNotEmpty()) {
+            Spacer(Modifier.width(5.dp))
             Text(
-                text = country.flag,
-                fontSize = 14.sp
-            )
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = stringResource(country.nameRes),
+                text = countryName,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontSize = 11.sp
+                fontSize = 10.sp
             )
         }
         if (maskedIp.isNotEmpty()) {
-            if (country != null) {
-                Spacer(Modifier.width(12.dp))
-                Text(
-                    text = "•",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                    fontSize = 10.sp
-                )
-                Spacer(Modifier.width(12.dp))
-            }
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "•",
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                fontSize = 9.sp
+            )
+            Spacer(Modifier.width(8.dp))
             Text(
                 text = maskedIp,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                fontSize = 10.sp,
                 fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
             )
         }

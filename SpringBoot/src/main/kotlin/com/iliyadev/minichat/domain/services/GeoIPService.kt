@@ -64,8 +64,8 @@ class GeoIPService {
 
         // Private/local IPs cannot be resolved by external GeoIP services
         if (isPrivateIp(ipAddress)) {
-            logger.info("GeoIP: Private/local IP detected: $ipAddress — returning LOCAL")
-            return "LOCAL"
+            logger.info("GeoIP: Private/local IP detected: $ipAddress — returning US fallback")
+            return "US"
         }
 
         // Check cache first (fast path — no blocking I/O)

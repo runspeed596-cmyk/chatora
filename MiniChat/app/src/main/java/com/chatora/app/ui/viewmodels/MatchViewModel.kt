@@ -63,37 +63,46 @@ class MatchViewModel @Inject constructor(
     private var chatSubscriptionId: String? = null
     
     private var matchingTimeoutJob: kotlinx.coroutines.Job? = null
+    
+    // Debounce guard — prevent rapid findMatch() cycling
+    private var lastFindMatchTime: Long = 0L
+    private val findMatchDebounceMs: Long = 2000L
 
     init {
         android.util.Log.d("MINICHAT_DEBUG", "MatchViewModel initialized")
         listenForEvents()
         
-        // AUTO-NEXT on Connection Failure / ICE Restart on Disconnected
+        // CONNECTION STATE HANDLER — Relaxed reconnection logic to prevent rapid cycling
         webRtcClient.onConnectionStateChanged = { state ->
             android.util.Log.d("MINICHAT_DEBUG", "WebRTC Connection State: $state")
             when (state) {
+                org.webrtc.PeerConnection.PeerConnectionState.CONNECTED -> {
+                    // Connection is stable — cancel any pending timeout
+                    connectionTimeoutJob?.cancel()
+                    android.util.Log.d("MINICHAT_DEBUG", "Connection CONNECTED. Timeout cancelled.")
+                }
                 org.webrtc.PeerConnection.PeerConnectionState.DISCONNECTED -> {
-                    // ICE disconnected — try restarting ICE before giving up
-                    android.util.Log.w("MINICHAT_DEBUG", "Connection DISCONNECTED. Attempting ICE restart...")
+                    // ICE disconnected — ONLY restart ICE, do NOT auto-find next.
+                    // This is often a temporary state that recovers on its own.
+                    android.util.Log.w("MINICHAT_DEBUG", "Connection DISCONNECTED. Attempting ICE restart (15s window)...")
                     webRtcClient.restartIce()
-                    // Give ICE restart 8 seconds to recover, then auto-search-next
+                    // Give 15s to recover — if still no video after that, do nothing (wait for FAILED)
                     viewModelScope.launch {
-                        kotlinx.coroutines.delay(8000)
+                        kotlinx.coroutines.delay(15000)
                         val currentState = _matchState.value
                         if (currentState is MatchUiState.Found && !_remoteVideoReady.value) {
-                            android.util.Log.w("MINICHAT_DEBUG", "ICE restart failed. Searching next...")
-                            stopMatching()
-                            kotlinx.coroutines.delay(500)
-                            findMatch()
+                            android.util.Log.w("MINICHAT_DEBUG", "ICE restart did not recover video in 15s. Waiting for FAILED state.")
                         }
                     }
                 }
                 org.webrtc.PeerConnection.PeerConnectionState.FAILED -> {
-                    android.util.Log.w("MINICHAT_DEBUG", "Connection FAILED. Searching next...")
+                    // True connection failure — wait 3s then search next (with debounce)
+                    android.util.Log.w("MINICHAT_DEBUG", "Connection FAILED. Will search next in 3s...")
                     viewModelScope.launch {
-                        stopMatching()
-                        kotlinx.coroutines.delay(500)
-                        findMatch()
+                        kotlinx.coroutines.delay(3000)
+                        if (_matchState.value is MatchUiState.Found) {
+                            debouncedFindMatch()
+                        }
                     }
                 }
                 else -> { /* No action for other states */ }
@@ -276,7 +285,31 @@ class MatchViewModel @Inject constructor(
 
     // ...
 
+    /**
+     * Debounced wrapper for findMatch — prevents rapid cycling.
+     * Only starts a new match if at least [findMatchDebounceMs] has elapsed since the last call.
+     */
+    private fun debouncedFindMatch() {
+        val now = System.currentTimeMillis()
+        if (now - lastFindMatchTime < findMatchDebounceMs) {
+            android.util.Log.w("MINICHAT_DEBUG", "debouncedFindMatch: Skipped (debounce active, ${now - lastFindMatchTime}ms since last)")
+            return
+        }
+        stopMatching()
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(500)
+            findMatch()
+        }
+    }
+
     fun findMatch() {
+        val now = System.currentTimeMillis()
+        if (now - lastFindMatchTime < findMatchDebounceMs && _hasStarted.value) {
+            android.util.Log.w("MINICHAT_DEBUG", "findMatch: Debounce active, skipping")
+            return
+        }
+        lastFindMatchTime = now
+        
         android.util.Log.d("MINICHAT_DEBUG", "findMatch() called. hasStarted=${_hasStarted.value}")
         if (!_hasStarted.value) _hasStarted.value = true
         
@@ -401,13 +434,11 @@ class MatchViewModel @Inject constructor(
         connectionTimeoutJob?.cancel()
         connectionTimeoutJob = viewModelScope.launch {
             try {
-                android.util.Log.d("MINICHAT_DEBUG", "Connection Timeout Started: 15s")
-                kotlinx.coroutines.delay(15000)
-                android.util.Log.e("MINICHAT_DEBUG", "Connection Timeout Reached! No Signal received.")
-                // Disconnect and search again
-                stopMatching()
-                kotlinx.coroutines.delay(500)
-                findMatch()
+                android.util.Log.d("MINICHAT_DEBUG", "Connection Timeout Started: 25s")
+                kotlinx.coroutines.delay(25000)
+                android.util.Log.e("MINICHAT_DEBUG", "Connection Timeout Reached! No Signal received in 25s.")
+                // Disconnect and search again (with debounce)
+                debouncedFindMatch()
             } catch (e: kotlinx.coroutines.CancellationException) {
                 // Timeout cancelled (Signal received)
                 android.util.Log.d("MINICHAT_DEBUG", "Connection Timeout Cancelled (Signal received)")
