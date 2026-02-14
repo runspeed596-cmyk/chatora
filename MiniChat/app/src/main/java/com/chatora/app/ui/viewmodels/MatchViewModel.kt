@@ -244,7 +244,18 @@ class MatchViewModel @Inject constructor(
                     return@launch
                 }
 
-                currentMatchId = json.getString("matchId")
+                val incomingMatchId = json.getString("matchId")
+                
+                // CRITICAL FIX: Prevent processing the same MATCH_FOUND twice
+                // This happens when the event is emitted multiple times (e.g., from flow replay,
+                // or when findMatch is called multiple times before the match response arrives).
+                // Without this guard, 2 PeerConnections, 2 offers, and 2 subscriptions are created.
+                if (incomingMatchId == currentMatchId) {
+                    android.util.Log.w("MINICHAT_DEBUG", "handleMatchFound: DUPLICATE matchId=$incomingMatchId, ignoring")
+                    return@launch
+                }
+                
+                currentMatchId = incomingMatchId
                 webRtcClient.currentMatchId = currentMatchId // CRITICAL FIX: Tell WebRTC where to send signals
                 
                 val partnerId = json.getString("partnerId")
@@ -548,16 +559,12 @@ class MatchViewModel @Inject constructor(
     }
 
     fun nextMatch() {
-        val mId = currentMatchId
-        if (mId != null) {
-            viewModelScope.launch {
-                try {
-                    apiService.cleanupMatchFiles(mId)
-                } catch (e: Exception) {
-                    android.util.Log.e("MINICHAT_DEBUG", "Cleanup failed", e)
-                }
-            }
-        }
+        android.util.Log.d("MINICHAT_DEBUG", "nextMatch() called")
+        // User explicitly pressed "Next" — notify server so partner gets PARTNER_LEFT
+        repository.stopMatching(_selectedCountry.value.code, _selectedGender.value)
+        // Clean up local state (without sending leave again)
+        cleanupCurrentMatch()
+        // Find new match
         findMatch()
     }
 
