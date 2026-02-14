@@ -12,6 +12,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import javax.inject.Inject
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -63,6 +65,10 @@ class MatchViewModel @Inject constructor(
     private var chatSubscriptionId: String? = null
     
     private var matchingTimeoutJob: kotlinx.coroutines.Job? = null
+    
+    // ANTI-DUPLICATE: Mutex-protected matchId guard for handleMatchFound()
+    // Prevents race condition where two concurrent coroutines both pass the duplicate check
+    private val matchMutex = Mutex()
     
     // Debounce guard — prevent rapid findMatch() cycling
     private var lastFindMatchTime: Long = 0L
@@ -208,17 +214,13 @@ class MatchViewModel @Inject constructor(
             android.util.Log.d("MINICHAT_DEBUG", "handleMatchFound: Connection init joined")
 
             try {
-                // ... (rest of logic) ...
                 val json = org.json.JSONObject(data)
                 val type = json.optString("type")
-                
                 
                 if (type == "PARTNER_LEFT") {
                     val eventMatchId = json.optString("matchId", "none")
                     
                     // CRITICAL FIX: Ignore stale PARTNER_LEFT events that don't match current active match
-                    // This prevents the rapid cycling race condition where old cleanup events
-                    // break the newly established match.
                     if (eventMatchId == "none" || eventMatchId.isEmpty()) {
                         android.util.Log.w("MINICHAT_DEBUG", "PARTNER_LEFT ignored: matchId is 'none' (stale event from previous cycle)")
                         return@launch
@@ -229,12 +231,9 @@ class MatchViewModel @Inject constructor(
                     }
                     
                     android.util.Log.i("MINICHAT_DEBUG", "PARTNER_LEFT received for active match $eventMatchId. Auto-finding next match...")
-                    // FIX: Use cleanupCurrentMatch() instead of stopMatching() to avoid
-                    // sending /app/match/leave to server (which would trigger PARTNER_LEFT
-                    // on the other side, creating a cascading re-match loop)
                     cleanupCurrentMatch()
                     _matchState.value = MatchUiState.Searching
-                    kotlinx.coroutines.delay(1500) // Allow server cleanup to complete
+                    kotlinx.coroutines.delay(1500)
                     debouncedFindMatch()
                     return@launch
                 }
@@ -246,17 +245,23 @@ class MatchViewModel @Inject constructor(
 
                 val incomingMatchId = json.getString("matchId")
                 
-                // CRITICAL FIX: Prevent processing the same MATCH_FOUND twice
-                // This happens when the event is emitted multiple times (e.g., from flow replay,
-                // or when findMatch is called multiple times before the match response arrives).
-                // Without this guard, 2 PeerConnections, 2 offers, and 2 subscriptions are created.
-                if (incomingMatchId == currentMatchId) {
-                    android.util.Log.w("MINICHAT_DEBUG", "handleMatchFound: DUPLICATE matchId=$incomingMatchId, ignoring")
+                // ATOMIC DUPLICATE GUARD: Use Mutex to prevent race condition
+                // where two concurrent coroutines both pass the check before either sets currentMatchId.
+                // withLock ensures only ONE coroutine can claim a matchId.
+                val shouldProcess = matchMutex.withLock {
+                    if (incomingMatchId == currentMatchId) {
+                        false // Already processing this match
+                    } else {
+                        currentMatchId = incomingMatchId
+                        true
+                    }
+                }
+                if (!shouldProcess) {
+                    android.util.Log.w("MINICHAT_DEBUG", "handleMatchFound: DUPLICATE matchId=$incomingMatchId (mutex-rejected)")
                     return@launch
                 }
                 
-                currentMatchId = incomingMatchId
-                webRtcClient.currentMatchId = currentMatchId // CRITICAL FIX: Tell WebRTC where to send signals
+                webRtcClient.currentMatchId = currentMatchId // Tell WebRTC where to send signals
                 
                 val partnerId = json.getString("partnerId")
                 val partnerUsername = json.getString("partnerUsername")
@@ -333,8 +338,10 @@ class MatchViewModel @Inject constructor(
 
     fun findMatch() {
         val now = System.currentTimeMillis()
-        if (now - lastFindMatchTime < findMatchDebounceMs && _hasStarted.value) {
-            android.util.Log.w("MINICHAT_DEBUG", "findMatch: Debounce active, skipping")
+        // FIX: Debounce ALWAYS active — previously `&& _hasStarted.value` allowed bypass
+        // after stopMatching() set _hasStarted=false, causing two joinQueue in 82ms
+        if (now - lastFindMatchTime < findMatchDebounceMs) {
+            android.util.Log.w("MINICHAT_DEBUG", "findMatch: Debounce active (${now - lastFindMatchTime}ms), skipping")
             return
         }
         lastFindMatchTime = now

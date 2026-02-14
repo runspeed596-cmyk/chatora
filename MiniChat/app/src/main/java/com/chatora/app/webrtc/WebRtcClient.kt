@@ -44,6 +44,7 @@ class WebRtcClient @Inject constructor(
     // ICE Candidate Queueing — buffer candidates received before remote description is set
     private val pendingIceCandidates = mutableListOf<IceCandidate>()
     private var hasRemoteDescription = false
+    private var hasHandledOffer = false // Offer-once guard: prevents duplicate offer processing
 
     // Remote renderer reference — stored so onTrack can always find the active sink
     private var remoteRenderer: SurfaceViewRenderer? = null
@@ -224,6 +225,7 @@ class WebRtcClient @Inject constructor(
         // NOTE: Caller is responsible for calling closePeerConnection() BEFORE this.
         // We do NOT call closePeerConnection() here to avoid double-clearing remoteRenderer.
         hasRemoteDescription = false
+        hasHandledOffer = false // Reset offer guard for new PeerConnection
         pendingIceCandidates.clear()
 
         // Multiple STUN servers for redundancy and better NAT traversal
@@ -330,6 +332,15 @@ class WebRtcClient @Inject constructor(
     }
     
     fun handleOffer(sdp: String) {
+        // OFFER-ONCE GUARD: Reject duplicate offers for the same PeerConnection.
+        // This prevents the catastrophic scenario where two offers from the initiator
+        // (caused by duplicate MATCH_FOUND processing) corrupt the SDP state.
+        if (hasHandledOffer) {
+            android.util.Log.w("WebRtcClient", "handleOffer: REJECTED (already handled an offer for this PC)")
+            return
+        }
+        hasHandledOffer = true
+        
         peerConnection?.setRemoteDescription(object : SdpObserverAdapter() {
             override fun onSetSuccess() {
                 hasRemoteDescription = true
