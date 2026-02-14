@@ -68,7 +68,7 @@ export const Subscriptions: React.FC = () => {
                 <form onSubmit={handleSubmit} className="mt-4 space-y-4 font-vazir">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            قیمت جدید (تومان)
+                            قیمت جدید (دلار)
                         </label>
                         <input
                             type="number"
@@ -77,7 +77,7 @@ export const Subscriptions: React.FC = () => {
                             className="w-full px-3 py-2 border border-gray-300 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none font-vazir bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
                             placeholder="قیمت را وارد کنید"
                             min="0"
-                            step="1000"
+                            step="0.01"
                             required
                         />
                     </div>

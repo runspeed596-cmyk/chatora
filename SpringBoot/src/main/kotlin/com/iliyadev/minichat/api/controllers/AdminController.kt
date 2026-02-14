@@ -52,7 +52,7 @@ class AdminController(
                 totalRevenue = totalRevenue,
                 monthlyRevenue = monthlyRevenue,
                 successfulPayments = paymentTransactionRepository.countByStatus(PaymentStatus.SUCCESS),
-                failedPayments = paymentTransactionRepository.countByStatus(PaymentStatus.FAILED)
+                failedPayments = paymentTransactionRepository.count() - paymentTransactionRepository.countByStatus(PaymentStatus.SUCCESS)
             )
         )
     }
@@ -201,7 +201,10 @@ class AdminController(
     fun getTopCountries(): ApiResponse<List<CountryDataDto>> {
         val stats = userRepository.countByCountryCode()
         
-        val dtos = stats.map { 
+        val dtos = stats.filter {
+             val code = it[0] as? String
+             !code.isNullOrBlank()
+        }.map { 
              val code = it[0] as String
              val count = it[1] as Long
              CountryDataDto(
