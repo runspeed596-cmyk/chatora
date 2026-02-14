@@ -291,20 +291,30 @@ class MatchViewModel @Inject constructor(
                 )
                 android.util.Log.d("MINICHAT_DEBUG", "UI State updated to Found")
 
-                // Reset video state for new connection — renderer persists but needs new track
+                // Reset video state for new connection IMMEDIATELY on found
                 _remoteVideoReady.value = false
+                
+                // Parse partner IP and country from server response
+                val partnerIp = json.optString("partnerIp", "")
+                val partnerCountryCode = json.optString("partnerCountryCode", "")
+                
+                _matchState.value = MatchUiState.Found(
+                    partner = partnerUser,
+                    partnerIp = partnerIp,
+                    partnerCountryCode = partnerCountryCode
+                )
+                android.util.Log.d("MINICHAT_DEBUG", "UI State updated to Found")
+
                 launchRetryMechanism()
 
                 // Subscribe to chat channel only — signaling uses persistent /user/queue/call
-                // (no per-match call subscription needed; eliminates subscription accumulation bug)
                 chatSubscriptionId = repository.subscribe("/topic/chat/$currentMatchId")
 
                 if (initiator) {
-                    android.util.Log.d("MINICHAT_DEBUG", "Initiator: Waiting 1s before creating Offer")
+                    android.util.Log.d("MINICHAT_DEBUG", "Initiator: Waiting 2s before creating Offer")
                     startConnectionTimeout()
-                    kotlinx.coroutines.delay(1000) 
+                    kotlinx.coroutines.delay(2000) // IDEAL: Give more time for partner to subscribe
                     android.util.Log.d("MINICHAT_DEBUG", "Initiator: Creating Offer now")
-                    // ZERO DELAY: Connection is already created in findMatch()
                     webRtcClient.createOffer()
                 } else {
                     android.util.Log.d("MINICHAT_DEBUG", "Receiver: Waiting for Offer")

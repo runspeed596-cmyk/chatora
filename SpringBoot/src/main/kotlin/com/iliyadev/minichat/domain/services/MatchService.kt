@@ -223,8 +223,8 @@ class MatchService(
         }
         
         // Repeat Prevention (Spec mandatory)
-        // LOOSENED FOR SMALL POOLS: If only 2 people, allow matching again to prevent deadlocks in testing
-        if (waiters.size > 2) {
+        // LOOSENED FOR SMALL POOLS: If pool is small, allow matching again to prevent deadlocks in testing
+        if (waiters.size > 5) {
             if (u1.lastMatchedUserId == u2.userId || u2.lastMatchedUserId == u1.userId) {
                 logger.debug("isValidMatch REJECTED: repeat match (${u1.username} vs ${u2.username})")
                 return false

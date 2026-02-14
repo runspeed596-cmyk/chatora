@@ -411,13 +411,16 @@ class WebRtcClient @Inject constructor(
             android.util.Log.d("WebRtcClient", "closePeerConnection: Disposing...")
             remoteVideoTrack?.let { track ->
                 track.setEnabled(false)
+                // Remove sink from persistent renderer before track disposal
+                remoteRenderer?.let { track.removeSink(it) }
             }
             
             peerConnection?.dispose()
             peerConnection = null
             remoteVideoTrack = null
-            remoteRenderer = null
-            currentMatchId = null
+            // CRITICAL FIX: DO NOT set remoteRenderer = null here. 
+            // It is provided once by the UI and must survive match transitions.
+            
             hasRemoteDescription = false
             pendingIceCandidates.clear()
         } catch (e: Exception) {
@@ -427,10 +430,14 @@ class WebRtcClient @Inject constructor(
 
     fun clearRemoteVideoTrack(renderer: SurfaceViewRenderer?) {
         try {
-            android.util.Log.d("WebRtcClient", "clearRemoteVideoTrack: renderer=$renderer")
-            renderer?.let { 
+            val r = renderer ?: remoteRenderer
+            android.util.Log.d("WebRtcClient", "clearRemoteVideoTrack: renderer=$r")
+            
+            r?.let { 
                 remoteVideoTrack?.removeSink(it)
-                // it.release() // DO NOT release here, let the UI component (AndroidView) handle its own lifecycle
+                // PRO-TIP: Force the renderer to clear its buffer by posting a null frame or just clearing it
+                // Since SurfaceViewRenderer doesn't have a direct 'clear' we rely on track removal 
+                // and UI placeholder logic.
             }
             onRemoteVideoTrackReceived = null 
         } catch (e: Exception) {
