@@ -14,8 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 class MatchService(
     private val messagingTemplate: SimpMessagingTemplate,
     private val userRepository: UserRepository,
-    private val storageService: StorageService,
-    private val geoIPService: GeoIPService
+    private val storageService: StorageService
 ) {
     private val logger = LoggerFactory.getLogger(MatchService::class.java)
 
@@ -40,8 +39,8 @@ class MatchService(
         val partnerId: String,
         val partnerUsername: String,
         val initiator: Boolean,
-        val partnerCountryCode: String = "",
-        val partnerCountryName: String = ""
+        val partnerIp: String = "",
+        val partnerCountryCode: String = ""
     )
 
     // POOLS (O(1) lookups)
@@ -219,15 +218,10 @@ class MatchService(
         removeFromPools(u1.userId)
         removeFromPools(u2.userId)
 
-        // Resolve country info via GeoIP (uses cached results)
-        val u1Country = geoIPService.getCountryInfo(u1.ipAddress)
-        val u2Country = geoIPService.getCountryInfo(u2.ipAddress)
-
-        logger.info("MATCH! [${u1.username} (${u1Country.countryCode}) <-> ${u2.username} (${u2Country.countryCode})]")
+        logger.info("MATCH! [${u1.username} <-> ${u2.username}]")
         
-        // Privacy: Only send country code + name, never IP
-        messagingTemplate.convertAndSendToUser(u1.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u2.userId.toString(), partnerUsername = u2.username, initiator = true, partnerCountryCode = u2Country.countryCode, partnerCountryName = u2Country.countryName))
-        messagingTemplate.convertAndSendToUser(u2.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u1.userId.toString(), partnerUsername = u1.username, initiator = false, partnerCountryCode = u1Country.countryCode, partnerCountryName = u1Country.countryName))
+        messagingTemplate.convertAndSendToUser(u1.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u2.userId.toString(), partnerUsername = u2.username, initiator = true, partnerIp = u2.ipAddress, partnerCountryCode = u2.country))
+        messagingTemplate.convertAndSendToUser(u2.username, "/queue/match", MatchEvent(matchId = matchId, partnerId = u1.userId.toString(), partnerUsername = u1.username, initiator = false, partnerIp = u1.ipAddress, partnerCountryCode = u1.country))
     }
 
     fun handleUserLeave(username: String, userId: String? = null, sessionId: String? = null) {
