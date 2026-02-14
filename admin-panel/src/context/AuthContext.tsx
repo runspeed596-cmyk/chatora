@@ -3,7 +3,7 @@ import { tokenManager } from '../utils/tokenManager';
 import type { AuthState, LoginResponse } from '../types/auth'; // User removed if unused
 
 interface AuthContextType extends AuthState {
-    login: (data: LoginResponse) => void;
+    login: (data: LoginResponse, rememberMe?: boolean) => void;
     logout: () => void;
 }
 
@@ -11,26 +11,46 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [state, setState] = useState<AuthState>({
-        user: null, // We keep user in state, so we might need User type if we typed this strictly, but AuthState uses it.
+        user: null,
         isAuthenticated: false,
         isLoading: true,
     });
 
     useEffect(() => {
-        // Listen for forced logout (from api interceptor)
+        // Attempt to restore session
+        const storedUser = localStorage.getItem('admin_user');
+        const token = tokenManager.getAccessToken();
+
+        if (storedUser && token) {
+            try {
+                setState({
+                    user: JSON.parse(storedUser),
+                    isAuthenticated: true,
+                    isLoading: false
+                });
+            } catch (e) {
+                tokenManager.clearTokens();
+                setState(prev => ({ ...prev, isLoading: false }));
+            }
+        } else {
+            setState(prev => ({ ...prev, isLoading: false }));
+        }
+
+        // Listen for forced logout
         const handleLogout = () => logout();
         window.addEventListener('auth:logout', handleLogout);
-
-        setState(prev => ({ ...prev, isLoading: false }));
 
         return () => {
             window.removeEventListener('auth:logout', handleLogout);
         };
     }, []);
 
-    const login = (data: LoginResponse) => {
-        tokenManager.setAccessToken(data.accessToken);
-        tokenManager.setRefreshToken(data.refreshToken);
+    const login = (data: LoginResponse, rememberMe = false) => {
+        tokenManager.setAccessToken(data.accessToken, rememberMe);
+        tokenManager.setRefreshToken(data.refreshToken, rememberMe);
+        if (rememberMe) {
+            localStorage.setItem('admin_user', JSON.stringify(data.user));
+        }
         setState({
             user: data.user,
             isAuthenticated: true,

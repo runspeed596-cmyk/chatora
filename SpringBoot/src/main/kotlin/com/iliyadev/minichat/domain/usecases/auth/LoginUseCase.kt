@@ -15,7 +15,8 @@ import java.util.UUID
 class LoginUseCase(
     private val userRepository: UserRepository,
     private val jwtService: JwtService,
-    private val passwordEncoder: PasswordEncoder
+    private val passwordEncoder: PasswordEncoder,
+    private val geoIPService: com.iliyadev.minichat.domain.services.GeoIPService
 ) {
 
     @Transactional
@@ -44,7 +45,7 @@ class LoginUseCase(
                 val newUser = User(
                     username = "User_" + UUID.randomUUID().toString().substring(0, 8),
                     deviceId = deviceId,
-                    countryCode = detectCountryFromIp(ipAddress) ?: request.countryCode ?: "US",
+                    countryCode = geoIPService.getCountryCode(ipAddress) ?: request.countryCode ?: "US",
                     languageCode = request.languageCode ?: "en"
                 )
                 userRepository.save(newUser)
@@ -77,10 +78,5 @@ class LoginUseCase(
             username = user.username,
             tempUsername = user.password == null
         )
-    }
-    private fun detectCountryFromIp(ip: String?): String? {
-        if (ip == null || ip == "127.0.0.1" || ip == "0:0:0:0:0:0:0:1") return "IR" // Default for local dev/testing
-        // Placeholder for real GeoIP logic (MaxMind/IP-API)
-        return "IR" // Most of users will be from Iran given the context
     }
 }

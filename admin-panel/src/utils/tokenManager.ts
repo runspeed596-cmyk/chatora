@@ -1,23 +1,24 @@
-let accessToken: string | null = null;
-let refreshToken: string | null = null;
+let accessToken: string | null = localStorage.getItem('access_token');
+let refreshToken: string | null = localStorage.getItem('refresh_token');
 
 export const tokenManager = {
     getAccessToken: () => accessToken,
     getRefreshToken: () => refreshToken,
-    setAccessToken: (token: string) => {
+    setAccessToken: (token: string, persist = false) => {
         accessToken = token;
+        if (persist) localStorage.setItem('access_token', token);
+        else localStorage.removeItem('access_token');
     },
-    setRefreshToken: (token: string) => {
+    setRefreshToken: (token: string, persist = false) => {
         refreshToken = token;
-        // Ideally, this should be stored in an HttpOnly cookie by the backend.
-        // If we must persist it on the client without cookies, we are at risk of XSS.
-        // We will use sessionStorage as a compromise for "session-only" persistence if needed, 
-        // but per strict security rules ("No sensitive data in localStorage"), 
-        // we will strictly keep it in memory. User will need to login on refresh.
-        // If persistence is required, we need a backend change.
+        if (persist) localStorage.setItem('refresh_token', token);
+        else localStorage.removeItem('refresh_token');
     },
     clearTokens: () => {
         accessToken = null;
         refreshToken = null;
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('admin_user');
     }
 };

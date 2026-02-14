@@ -6,17 +6,20 @@ import { authService } from '../services/authService';
 export const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberMe, setRememberMe] = useState(false);
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        setIsLoading(true);
 
         try {
             const data = await authService.login(username, password);
-            login(data);
+            login(data, rememberMe);
             navigate('/');
         } catch (err: any) {
             if (err.response && err.response.status === 401) {
@@ -24,6 +27,8 @@ export const Login: React.FC = () => {
             } else {
                 setError('خطا در برقراری ارتباط با سرور');
             }
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -70,11 +75,25 @@ export const Login: React.FC = () => {
                         />
                     </div>
 
+                    <div className="flex items-center gap-2 mr-1">
+                        <input
+                            type="checkbox"
+                            id="rememberMe"
+                            checked={rememberMe}
+                            onChange={(e) => setRememberMe(e.target.checked)}
+                            className="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                        />
+                        <label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer font-vazir">
+                            مرا به خاطر بسپار
+                        </label>
+                    </div>
+
                     <button
                         type="submit"
-                        className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-lg transition-colors shadow-lg shadow-primary-500/30 font-vazir"
+                        disabled={isLoading}
+                        className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-lg transition-all shadow-lg shadow-primary-500/30 font-vazir disabled:opacity-50"
                     >
-                        ورود
+                        {isLoading ? 'در حال ورود...' : 'ورود'}
                     </button>
                 </form>
             </div>

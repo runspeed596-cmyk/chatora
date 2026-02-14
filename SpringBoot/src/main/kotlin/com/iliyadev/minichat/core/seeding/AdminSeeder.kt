@@ -20,18 +20,21 @@ class AdminSeeder(
     }
 
     private fun seedAdmin() {
+        val adminPassword = "0Plm*#*#9Okn*#*#"
         val existingAdmin = userRepository.findByUsername("admin")
         if (existingAdmin.isPresent) {
             val admin = existingAdmin.get()
-            admin.password = passwordEncoder.encode("admin")
-            admin.role = Role.ADMIN
-            userRepository.save(admin)
-            println(">>>> PRODUCTION SECURITY: Admin password and role verified/updated.")
+            // Only ensure the role is ADMIN, do NOT reset password on every restart
+            if (admin.role != Role.ADMIN) {
+                admin.role = Role.ADMIN
+                userRepository.save(admin)
+                println(">>>> PRODUCTION SECURITY: Admin role updated.")
+            }
         } else {
             val admin = User(
                 username = "admin",
                 deviceId = "admin_hardware_id",
-                password = passwordEncoder.encode("admin"),
+                password = passwordEncoder.encode(adminPassword),
                 role = Role.ADMIN
             )
             userRepository.save(admin)
