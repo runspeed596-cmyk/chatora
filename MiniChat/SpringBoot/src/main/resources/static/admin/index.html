@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>پنل مدیریت - رزونست</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="css/admin.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Vazir';
+            src: url('/font/Vazir.woff2') format('woff2');
+        }
+        body {
+            font-family: 'Vazir', sans-serif;
+            background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        .login-logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-logo h1 {
+            color: #0d9488;
+            font-weight: bold;
+            font-size: 2rem;
+        }
+        .login-logo p {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+        }
+        .form-control:focus {
+            border-color: #0d9488;
+            box-shadow: 0 0 0 0.2rem rgba(13, 148, 136, 0.25);
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #0d9488 0%, #115e59 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: bold;
+            width: 100%;
+            color: white;
+        }
+        .btn-login:hover {
+            background: linear-gradient(135deg, #115e59 0%, #0d9488 100%);
+            color: white;
+        }
+        .error-message {
+            color: #dc3545;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-logo">
+            <h1><i class="fas fa-briefcase"></i> رزونست</h1>
+            <p>پنل مدیریت سیستم کاریابی</p>
+        </div>
+        
+        <form id="loginForm">
+            <div class="mb-3">
+                <label for="username" class="form-label">نام کاربری</label>
+                <input type="text" class="form-control" id="username" placeholder="نام کاربری خود را وارد کنید" required>
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">رمز عبور</label>
+                <input type="password" class="form-control" id="password" placeholder="رمز عبور خود را وارد کنید" required>
+            </div>
+            <button type="submit" class="btn btn-login">
+                <i class="fas fa-sign-in-alt me-2"></i>
+                ورود به پنل
+            </button>
+            <div class="error-message" id="errorMessage">
+                نام کاربری یا رمز عبور اشتباه است
+            </div>
+        </form>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/user/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.data && data.data.length > 0) {
+                    const user = data.data[0];
+                    if (user.isAdmin) {
+                        localStorage.setItem('adminToken', user.token);
+                        localStorage.setItem('adminUser', JSON.stringify(user));
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        document.getElementById('errorMessage').textContent = 'شما دسترسی ادمین ندارید';
+                        document.getElementById('errorMessage').style.display = 'block';
+                    }
+                } else {
+                    document.getElementById('errorMessage').textContent = data.message || 'نام کاربری یا رمز عبور اشتباه است';
+                    document.getElementById('errorMessage').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('errorMessage').textContent = 'خطا در برقراری ارتباط با سرور';
+                document.getElementById('errorMessage').style.display = 'block';
+            }
+        });
+
+        // Check if already logged in
+        if (localStorage.getItem('adminToken')) {
+            window.location.href = 'dashboard.html';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>داشبورد - رزونست</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @font-face {
+            font-family: 'Vazir';
+            src: url('/font/Vazir.woff2') format('woff2');
+        }
+
+        * {
+            font-family: 'Vazir', sans-serif;
+        }
+
+        body {
+            background-color: #f5f5f5;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, #0d9488 0%, #115e59 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            position: fixed;
+            width: 250px;
+        }
+
+        .sidebar-brand {
+            color: white;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-brand h4 {
+            margin: 0;
+            font-weight: bold;
+        }
+
+        .sidebar-brand small {
+            opacity: 0.7;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 12px 25px;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link i {
+            margin-left: 10px;
+            width: 20px;
+        }
+
+        .main-content {
+            margin-right: 250px;
+            padding: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            margin-bottom: 20px;
+        }
+
+        .stat-card .icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+        }
+
+        .stat-card .icon.jobs {
+            background: linear-gradient(135deg, #0d9488, #115e59);
+        }
+
+        .stat-card .icon.users {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        }
+
+        .stat-card .icon.applications {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .stat-card .icon.categories {
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+        }
+
+        .stat-card h3 {
+            font-size: 2rem;
+            margin: 10px 0 5px;
+        }
+
+        .stat-card p {
+            color: #666;
+            margin: 0;
+        }
+
+        .header-bar {
+            background: white;
+            padding: 15px 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .btn-logout {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="fas fa-briefcase"></i> رزونست</h4>
+            <small>پنل مدیریت</small>
+        </div>
+        <nav>
+            <a href="dashboard.html" class="nav-link active">
+                <i class="fas fa-home"></i> داشبورد
+            </a>
+            <a href="jobs.html" class="nav-link">
+                <i class="fas fa-clipboard-list"></i> آگهی‌ها
+            </a>
+            <a href="applications.html" class="nav-link">
+                <i class="fas fa-file-alt"></i> درخواست‌ها
+            </a>
+            <a href="categories.html" class="nav-link">
+                <i class="fas fa-folder"></i> دسته‌بندی‌ها
+            </a>
+            <a href="locations.html" class="nav-link">
+                <i class="fas fa-map-marker-alt"></i> استان‌ها و شهرها
+            </a>
+            <a href="cooperation-types.html" class="nav-link">
+                <i class="fas fa-handshake"></i> انواع همکاری
+            </a>
+            <a href="users.html" class="nav-link">
+                <i class="fas fa-users"></i> کاربران
+            </a>
+            <a href="bookmarks.html" class="nav-link">
+                <i class="fas fa-bookmark"></i> نشان‌شده‌ها
+            </a>
+            <a href="notifications.html" class="nav-link">
+                <i class="fas fa-bell"></i> اعلان‌ها
+            </a>
+            <a href="resumes.html" class="nav-link">
+                <i class="fas fa-file-pdf"></i> رزومه‌ها
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="header-bar">
+            <h5 class="mb-0">خوش آمدید، <span id="adminName">مدیر</span></h5>
+            <button class="btn-logout" onclick="logout()">
+                <i class="fas fa-sign-out-alt"></i> خروج
+            </button>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="icon jobs">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="me-3">
+                            <h3 id="jobsCount">0</h3>
+                            <p>آگهی‌های شغلی</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="icon users">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="me-3">
+                            <h3 id="usersCount">0</h3>
+                            <p>کاربران</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="icon applications">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="me-3">
+                            <h3 id="applicationsCount">0</h3>
+                            <p>درخواست‌ها</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
+                        <div class="icon categories">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <div class="me-3">
+                            <h3 id="categoriesCount">0</h3>
+                            <p>دسته‌بندی‌ها</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="stat-card">
+                    <h5 class="mb-4">دسترسی سریع</h5>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="jobs.html" class="btn btn-outline-primary w-100 p-3">
+                                <i class="fas fa-plus mb-2 d-block" style="font-size: 24px;"></i>
+                                مدیریت آگهی‌ها
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="categories.html" class="btn btn-outline-success w-100 p-3">
+                                <i class="fas fa-folder-plus mb-2 d-block" style="font-size: 24px;"></i>
+                                مدیریت دسته‌بندی‌ها
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="locations.html" class="btn btn-outline-warning w-100 p-3">
+                                <i class="fas fa-map-marker-alt mb-2 d-block" style="font-size: 24px;"></i>
+                                مدیریت مکان‌ها
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="users.html" class="btn btn-outline-info w-100 p-3">
+                                <i class="fas fa-user-plus mb-2 d-block" style="font-size: 24px;"></i>
+                                مدیریت کاربران
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+        const token = localStorage.getItem('adminToken');
+
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+
+        // Load admin name
+        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        document.getElementById('adminName').textContent = adminUser.username || 'مدیر';
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                // Jobs count
+                const jobsRes = await fetch(`${API_BASE}/api/jobs/count`);
+                const jobsData = await jobsRes.json();
+                if (jobsData.data) {
+                    document.getElementById('jobsCount').textContent = jobsData.data[0] || 0;
+                }
+
+                // Users count
+                const usersRes = await fetch(`${API_BASE}/api/admin/users/count`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const usersData = await usersRes.json();
+                if (usersData.data) {
+                    document.getElementById('usersCount').textContent = usersData.data[0] || 0;
+                }
+
+                // Applications count
+                const appsRes = await fetch(`${API_BASE}/api/admin/applications/count`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const appsData = await appsRes.json();
+                if (appsData.data) {
+                    document.getElementById('applicationsCount').textContent = appsData.data[0] || 0;
+                }
+
+                // Categories count
+                const catsRes = await fetch(`${API_BASE}/api/categories`);
+                const catsData = await catsRes.json();
+                if (catsData.data) {
+                    document.getElementById('categoriesCount').textContent = catsData.data.length || 0;
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            window.location.href = 'index.html';
+        }
+
+        loadStats();
+    </script>
+</body>
+
+</html>

@@ -150,9 +150,6 @@
             <a href="jobs.html" class="nav-link">
                 <i class="fas fa-clipboard-list"></i> آگهی‌ها
             </a>
-            <a href="applications.html" class="nav-link">
-                <i class="fas fa-file-alt"></i> درخواست‌ها
-            </a>
             <a href="categories.html" class="nav-link">
                 <i class="fas fa-folder"></i> دسته‌بندی‌ها
             </a>
@@ -164,15 +161,6 @@
             </a>
             <a href="users.html" class="nav-link">
                 <i class="fas fa-users"></i> کاربران
-            </a>
-            <a href="bookmarks.html" class="nav-link">
-                <i class="fas fa-bookmark"></i> نشان‌شده‌ها
-            </a>
-            <a href="notifications.html" class="nav-link">
-                <i class="fas fa-bell"></i> اعلان‌ها
-            </a>
-            <a href="resumes.html" class="nav-link">
-                <i class="fas fa-file-pdf"></i> رزومه‌ها
             </a>
         </nav>
     </div>
@@ -203,12 +191,25 @@
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="d-flex align-items-center">
+                        <div class="icon categories">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                        <div class="me-3">
+                            <h3 id="categoriesCount">0</h3>
+                            <p>دسته‌بندی‌ها</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card">
+                    <div class="d-flex align-items-center">
                         <div class="icon users">
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="me-3">
-                            <h3 id="usersCount">0</h3>
-                            <p>کاربران</p>
+                            <h3 id="citiesCount">0</h3>
+                            <p>شهرهای فعال</p>
                         </div>
                     </div>
                 </div>
@@ -217,24 +218,11 @@
                 <div class="stat-card">
                     <div class="d-flex align-items-center">
                         <div class="icon applications">
-                            <i class="fas fa-file-alt"></i>
+                            <i class="fas fa-map"></i>
                         </div>
                         <div class="me-3">
-                            <h3 id="applicationsCount">0</h3>
-                            <p>درخواست‌ها</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="d-flex align-items-center">
-                        <div class="icon categories">
-                            <i class="fas fa-folder"></i>
-                        </div>
-                        <div class="me-3">
-                            <h3 id="categoriesCount">0</h3>
-                            <p>دسته‌بندی‌ها</p>
+                            <h3 id="provincesCount">0</h3>
+                            <p>استان‌ها</p>
                         </div>
                     </div>
                 </div>
@@ -298,29 +286,25 @@
                     document.getElementById('jobsCount').textContent = jobsData.data[0] || 0;
                 }
 
-                // Users count
-                const usersRes = await fetch(`${API_BASE}/api/admin/users/count`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const usersData = await usersRes.json();
-                if (usersData.data) {
-                    document.getElementById('usersCount').textContent = usersData.data[0] || 0;
-                }
-
-                // Applications count
-                const appsRes = await fetch(`${API_BASE}/api/admin/applications/count`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                const appsData = await appsRes.json();
-                if (appsData.data) {
-                    document.getElementById('applicationsCount').textContent = appsData.data[0] || 0;
-                }
-
                 // Categories count
                 const catsRes = await fetch(`${API_BASE}/api/categories`);
                 const catsData = await catsRes.json();
                 if (catsData.data) {
                     document.getElementById('categoriesCount').textContent = catsData.data.length || 0;
+                }
+
+                // Cities count
+                const citiesRes = await fetch(`${API_BASE}/api/jobs/cities-count`);
+                const citiesData = await citiesRes.json();
+                if (citiesData.data) {
+                    document.getElementById('citiesCount').textContent = citiesData.data[0] || 0;
+                }
+
+                // Provinces count
+                const provRes = await fetch(`${API_BASE}/api/locations/provinces`);
+                const provData = await provRes.json();
+                if (provData.data) {
+                    document.getElementById('provincesCount').textContent = provData.data.length || 0;
                 }
             } catch (error) {
                 console.error('Error loading stats:', error);
