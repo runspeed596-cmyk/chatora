@@ -240,6 +240,15 @@ class AdminController(
         return ApiResponse.success(matches)
     }
 
+    /**
+     * Returns history of messages for an active match.
+     */
+    @GetMapping("/active-chats/{matchId}/messages")
+    fun getMatchMessages(@PathVariable matchId: String): ApiResponse<List<ChatMessageResponse>> {
+        val messages = matchService.getMatchMessages(matchId)
+        return ApiResponse.success(messages)
+    }
+
     // ─── Subscriptions ───────────────────────────────────────────────────────────
 
     @GetMapping("/subscriptions")

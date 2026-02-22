@@ -1,5 +1,8 @@
 package com.iliyadev.minichat.api.controllers
 
+import com.iliyadev.minichat.api.dtos.ChatMessageRequest
+import com.iliyadev.minichat.api.dtos.ChatMessageResponse
+import com.iliyadev.minichat.domain.services.MatchService
 import org.slf4j.LoggerFactory
 import org.springframework.messaging.handler.annotation.DestinationVariable
 import org.springframework.messaging.handler.annotation.MessageMapping
@@ -7,25 +10,11 @@ import org.springframework.messaging.handler.annotation.Payload
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Controller
 import java.security.Principal
-import java.time.Instant
-
-data class ChatMessageRequest(
-    val message: String,
-    val mediaUrl: String? = null,
-    val mediaType: String? = null
-)
-
-data class ChatMessageResponse(
-    val sender: String,
-    val message: String,
-    val mediaUrl: String? = null,
-    val mediaType: String? = null,
-    val timestamp: Long = Instant.now().toEpochMilli()
-)
 
 @Controller
 class ChatController(
-    private val messagingTemplate: SimpMessagingTemplate
+    private val messagingTemplate: SimpMessagingTemplate,
+    private val matchService: MatchService
 ) {
     private val logger = LoggerFactory.getLogger(ChatController::class.java)
 
@@ -43,6 +32,9 @@ class ChatController(
             mediaUrl = request.mediaUrl,
             mediaType = request.mediaType
         )
+        
+        // Store in buffer for admin monitoring
+        matchService.addMessageToBuffer(matchId, response)
         
         // Broadcast to both users in the match topic
         messagingTemplate.convertAndSend("/topic/chat/$matchId", response)

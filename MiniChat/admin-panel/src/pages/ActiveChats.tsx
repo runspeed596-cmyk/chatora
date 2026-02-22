@@ -1,13 +1,24 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../services/api';
-import { Radio, Users, Clock, RefreshCw } from 'lucide-react';
+import { Radio, Users, Clock, RefreshCw, Eye, X, Send } from 'lucide-react';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
+import { tokenManager } from '../utils/tokenManager';
 
 interface ActiveMatch {
     matchId: string;
     user1: string;
     user2: string;
     startedAt: number;
+}
+
+interface ChatMessage {
+    sender: string;
+    message: string;
+    mediaUrl?: string;
+    mediaType?: string;
+    timestamp: number;
 }
 
 const formatDuration = (startedAt: number): string => {
@@ -21,31 +32,167 @@ const formatDuration = (startedAt: number): string => {
     return `${hours}h ${minutes % 60}m`;
 };
 
+const MonitorModal: React.FC<{ match: ActiveMatch; onClose: () => void }> = ({ match, onClose }) => {
+    const [messages, setMessages] = React.useState<ChatMessage[]>([]);
+    const [status, setStatus] = React.useState<'connecting' | 'connected' | 'error'>('connecting');
+    const scrollRef = React.useRef<HTMLDivElement>(null);
+
+    React.useEffect(() => {
+        // 1. Fetch History
+        api.get(`/admin/active-chats/${match.matchId}/messages`)
+            .then(res => {
+                if (res.data.success) setMessages(res.data.data);
+            })
+            .catch(err => console.error('Failed to fetch history:', err));
+
+        // 2. Setup WebSocket
+        const socket = new SockJS(`${import.meta.env.VITE_API_BASE_URL}/ws`);
+        const client = new Client({
+            webSocketFactory: () => socket,
+            connectHeaders: {
+                Authorization: `Bearer ${tokenManager.getAccessToken()}`
+            },
+            onConnect: () => {
+                setStatus('connected');
+                client.subscribe(`/topic/chat/${match.matchId}`, (msg) => {
+                    const newMessage = JSON.parse(msg.body);
+                    setMessages(prev => [...prev, newMessage]);
+                });
+            },
+            onStompError: (frame) => {
+                console.error('STOMP error:', frame);
+                setStatus('error');
+            },
+            onDisconnect: () => setStatus('connecting')
+        });
+
+        client.activate();
+
+        return () => {
+            client.deactivate();
+        };
+    }, [match.matchId]);
+
+    React.useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages]);
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+                {/* Modal Header */}
+                <div className="p-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-gray-50/50 dark:bg-slate-800/50">
+                    <div className="flex items-center gap-4">
+                        <div className="flex -space-x-3 rtl:space-x-reverse">
+                            <div className="w-10 h-10 rounded-full bg-green-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white font-bold shadow-sm">
+                                {match.user1.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-blue-500 border-2 border-white dark:border-slate-900 flex items-center justify-center text-white font-bold shadow-sm">
+                                {match.user2.charAt(0).toUpperCase()}
+                            </div>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-gray-900 dark:text-white font-vazir">
+                                مانیتورینگ زنده: {match.user1} و {match.user2}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-0.5">
+                                <span className={`w-2 h-2 rounded-full ${status === 'connected' ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`} />
+                                <span className="text-xs text-gray-500 font-vazir">
+                                    {status === 'connected' ? 'متصل (زنده)' : 'در حال اتصال...'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-200 dark:hover:bg-slate-700 rounded-full transition-colors">
+                        <X className="w-6 h-6 text-gray-500" />
+                    </button>
+                </div>
+
+                {/* Messages Content */}
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50 dark:bg-slate-950/30">
+                    {messages.length === 0 ? (
+                        <div className="text-center py-20">
+                            <Send className="w-12 h-12 text-gray-300 mx-auto mb-3 opacity-20" />
+                            <p className="text-gray-400 font-vazir">هنوز پیامی ارسال نشده است</p>
+                        </div>
+                    ) : (
+                        messages.map((msg, i) => (
+                            <div key={i} className={`flex flex-col ${msg.sender === match.user1 ? 'items-start' : 'items-end'}`}>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] font-bold text-gray-400 font-vazir">{msg.sender}</span>
+                                    <span className="text-[10px] text-gray-400 font-mono">{new Date(msg.timestamp).toLocaleTimeString('fa-IR')}</span>
+                                </div>
+                                <div className={`max-w-[85%] p-3 rounded-2xl shadow-sm border ${msg.sender === match.user1
+                                    ? 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700 rounded-tl-none'
+                                    : 'bg-primary-500 text-white border-primary-600 rounded-tr-none'
+                                    }`}>
+                                    {msg.message && <p className="text-sm font-vazir leading-relaxed whitespace-pre-wrap">{msg.message}</p>}
+
+                                    {msg.mediaUrl && (
+                                        <div className="mt-2">
+                                            {msg.mediaType?.startsWith('image') ? (
+                                                <img
+                                                    src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${import.meta.env.VITE_API_BASE_URL}${msg.mediaUrl}`}
+                                                    alt="Media"
+                                                    className="rounded-lg max-w-full h-auto cursor-pointer"
+                                                    onClick={() => window.open(msg.mediaUrl, '_blank')}
+                                                />
+                                            ) : msg.mediaType?.startsWith('video') ? (
+                                                <video
+                                                    src={msg.mediaUrl.startsWith('http') ? msg.mediaUrl : `${import.meta.env.VITE_API_BASE_URL}${msg.mediaUrl}`}
+                                                    controls
+                                                    className="rounded-lg max-w-full"
+                                                />
+                                            ) : (
+                                                <a href={msg.mediaUrl} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-xs underline">
+                                                    مشاهده فایل پیوست
+                                                </a>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+
+                {/* Footer Info */}
+                <div className="p-4 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 text-center">
+                    <p className="text-[10px] text-gray-400 font-vazir">
+                        ⚠️ شما در حال مشاهده محتوای خصوصی کاربران به عنوان ناظر هستید. این گفتگو ذخیره نمی‌شود.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const ActiveChats: React.FC = () => {
+    const [selectedMatch, setSelectedMatch] = React.useState<ActiveMatch | null>(null);
+
     const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery({
         queryKey: ['active-chats'],
         queryFn: async () => {
             const response = await api.get('/admin/active-chats');
             const payload = response.data;
-            // Handle ApiResponse wrapper: { success: boolean, data: [...], message: string }
             if (payload && typeof payload === 'object' && 'data' in payload && Array.isArray(payload.data)) {
                 return payload.data as ActiveMatch[];
             }
-            // Fallback: response is the array directly
             if (Array.isArray(payload)) {
                 return payload as ActiveMatch[];
             }
             console.warn('Unexpected active-chats response format:', payload);
             return [];
         },
-        refetchInterval: 3000, // Auto-refresh every 3 seconds
+        refetchInterval: 3000,
         refetchIntervalInBackground: true,
         retry: 2,
     });
 
     const matches = data || [];
 
-    // Force re-render every second for duration counter
     const [, setTick] = React.useState(0);
     React.useEffect(() => {
         const timer = setInterval(() => setTick(t => t + 1), 1000);
@@ -131,6 +278,7 @@ export const ActiveChats: React.FC = () => {
                                 <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">کاربر ۱</th>
                                 <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">کاربر ۲</th>
                                 <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">مدت تماس</th>
+                                <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">عملیات</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
@@ -169,6 +317,15 @@ export const ActiveChats: React.FC = () => {
                                             </span>
                                         </div>
                                     </td>
+                                    <td className="px-6 py-4">
+                                        <button
+                                            onClick={() => setSelectedMatch(match)}
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 transition-colors font-vazir text-sm font-bold"
+                                        >
+                                            <Eye className="w-4 h-4" />
+                                            مشاهده
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -182,6 +339,14 @@ export const ActiveChats: React.FC = () => {
                     بروزرسانی خودکار هر ۳ ثانیه • آخرین بروزرسانی: {new Date(dataUpdatedAt || Date.now()).toLocaleTimeString('fa-IR')}
                 </span>
             </div>
+
+            {/* Monitor Modal */}
+            {selectedMatch && (
+                <MonitorModal
+                    match={selectedMatch}
+                    onClose={() => setSelectedMatch(null)}
+                />
+            )}
         </div>
     );
 };

@@ -1,5 +1,6 @@
 package com.iliyadev.minichat.domain.services
 
+import com.iliyadev.minichat.api.dtos.ChatMessageResponse
 import com.iliyadev.minichat.core.storage.StorageService
 import com.iliyadev.minichat.domain.repositories.UserRepository
 import org.slf4j.LoggerFactory
@@ -54,6 +55,9 @@ class MatchService(
     private val activeMatches = ConcurrentHashMap<String, String>() // username -> partnerUsername
     private val userMatchIds = ConcurrentHashMap<String, String>() // username -> matchId
     private val lastMatchedUsers = ConcurrentHashMap<UUID, UUID>() // userId -> lastMatchedUserId (Spec requirement)
+    
+    // In-memory chat buffer for admin monitoring (ephemeral)
+    private val matchMessages = ConcurrentHashMap<String, MutableList<ChatMessageResponse>>()
 
     // ANTI-CYCLING: Server-side protection against duplicate joinQueue requests
     private val lastJoinTime = ConcurrentHashMap<String, Long>() // username -> timestamp
@@ -341,7 +345,10 @@ class MatchService(
         val matchId = userMatchIds.remove(username)
         matchCreatedTime.remove(username) // Clean up match protection data
         
-        if (matchId != null) storageService.cleanup(matchId)
+        if (matchId != null) {
+            storageService.cleanup(matchId)
+            matchMessages.remove(matchId)
+        }
 
         if (partnerUsername != null) {
             activeMatches.remove(partnerUsername)
@@ -369,5 +376,23 @@ class MatchService(
      */
     fun getPartnerUsername(username: String): String? {
         return activeMatches[username]
+    }
+
+    /**
+     * Stores a chat message in the ephemeral buffer for admin monitoring.
+     */
+    fun addMessageToBuffer(matchId: String, message: ChatMessageResponse) {
+        val list = matchMessages.computeIfAbsent(matchId) { Collections.synchronizedList(mutableListOf()) }
+        synchronized(list) {
+            if (list.size >= 50) list.removeAt(0)
+            list.add(message)
+        }
+    }
+
+    /**
+     * Returns the chat history for an active match.
+     */
+    fun getMatchMessages(matchId: String): List<ChatMessageResponse> {
+        return matchMessages[matchId]?.toList() ?: emptyList()
     }
 }
