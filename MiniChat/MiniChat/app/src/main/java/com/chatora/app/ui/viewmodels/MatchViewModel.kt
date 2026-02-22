@@ -112,12 +112,22 @@ class MatchViewModel @Inject constructor(
                     }
                 }
                 org.webrtc.PeerConnection.PeerConnectionState.FAILED -> {
-                    // True connection failure — wait then search next (with debounce)
-                    android.util.Log.w(TAG, "Connection FAILED. Will search next in ${FAILED_STATE_DELAY_MS / 1000}s...")
+                    // True connection failure — try ICE restart first before giving up.
+                    // Do NOT auto-findNext, which caused cascading match cycling.
+                    android.util.Log.w(TAG, "Connection FAILED — attempting recovery (ICE restart + re-offer)")
                     viewModelScope.launch {
+                        // Step 1: ICE restart (handled by WebRtcClient)
+                        webRtcClient.restartIce()
                         kotlinx.coroutines.delay(FAILED_STATE_DELAY_MS)
-                        if (_matchState.value is MatchUiState.Found) {
-                            debouncedFindMatch()
+                        // Step 2: If still in match and no video, re-create PC + offer
+                        if (_matchState.value is MatchUiState.Found && !_remoteVideoReady.value) {
+                            android.util.Log.w(TAG, "ICE restart did not recover connection — re-creating offer")
+                            webRtcClient.closePeerConnection()
+                            if (!webRtcClient.areLocalTracksInitialized) {
+                                webRtcClient.awaitLocalTracks()
+                            }
+                            webRtcClient.createPeerConnection()
+                            webRtcClient.createOffer()
                         }
                     }
                 }
@@ -292,12 +302,19 @@ class MatchViewModel @Inject constructor(
                 // Subscribe to chat channel — signaling uses persistent /user/queue/call
                 chatSubscriptionId = repository.subscribe("/topic/chat/$currentMatchId")
 
-                // CRITICAL FIX: Ensure PeerConnection is ready before signaling
-                if (!webRtcClient.isPeerConnectionReady) {
-                    android.util.Log.w(TAG, "PeerConnection not ready yet — creating synchronously")
-                    webRtcClient.closePeerConnection()
-                    webRtcClient.createPeerConnection()
+                // CRITICAL FIX: Always create fresh PeerConnection for each match.
+                // Await local tracks to guarantee video+audio are added to PC.
+                android.util.Log.d(TAG, "Creating fresh PeerConnection for match $currentMatchId")
+                webRtcClient.closePeerConnection()
+                if (!webRtcClient.areLocalTracksInitialized) {
+                    android.util.Log.d(TAG, "Waiting for local tracks before creating PC...")
+                    val tracksReady = webRtcClient.awaitLocalTracks()
+                    if (!tracksReady) {
+                        android.util.Log.e(TAG, "Local tracks failed — cannot establish call")
+                        return@launch
+                    }
                 }
+                webRtcClient.createPeerConnection()
 
                 if (initiator) {
                     android.util.Log.d(TAG, "Initiator: Waiting ${INITIATOR_DELAY_MS}ms before creating Offer")
@@ -319,6 +336,8 @@ class MatchViewModel @Inject constructor(
     /**
      * Debounced wrapper for findMatch — prevents rapid cycling.
      * Only starts a new match if at least [FIND_MATCH_DEBOUNCE_MS] has elapsed since the last call.
+     * FIXED: No longer calls stopMatching() which would reset state to Idle and
+     * send a server leave, causing state corruption during auto-recovery.
      */
     private fun debouncedFindMatch() {
         val now = System.currentTimeMillis()
@@ -326,7 +345,10 @@ class MatchViewModel @Inject constructor(
             android.util.Log.w(TAG, "debouncedFindMatch: Skipped (debounce active, ${now - lastFindMatchTime}ms since last)")
             return
         }
-        stopMatching()
+        // Clean up current match state (PC + topics) without resetting to Idle
+        cleanupCurrentMatch()
+        // Notify server we're leaving the current match
+        repository.stopMatching(_selectedCountry.value.code, _selectedGender.value)
         viewModelScope.launch {
             kotlinx.coroutines.delay(500)
             findMatch()
@@ -352,15 +374,26 @@ class MatchViewModel @Inject constructor(
         // Clean up old match state WITHOUT sending leave to server
         cleanupCurrentMatch()
 
-        // CRITICAL FIX: Create PeerConnection SYNCHRONOUSLY before sending joinQueue.
-        // This guarantees the PC is ready when MATCH_FOUND arrives, eliminating the
-        // race condition where signals arrive before the PC exists.
-        try {
-            android.util.Log.d(TAG, "Creating PeerConnection synchronously...")
-            webRtcClient.createPeerConnection()
-            android.util.Log.d(TAG, "PeerConnection created. Ready=${webRtcClient.isPeerConnectionReady}")
-        } catch (e: Exception) {
-            android.util.Log.e(TAG, "Error creating PeerConnection", e)
+        // CRITICAL FIX: Ensure local tracks are initialized before creating PeerConnection.
+        // startLocalVideo() runs async — without awaiting, tracks are null and the partner
+        // sees a black screen because no video/audio tracks are added to the PeerConnection.
+        viewModelScope.launch {
+            try {
+                if (!webRtcClient.areLocalTracksInitialized) {
+                    android.util.Log.d(TAG, "Waiting for local tracks to initialize...")
+                    val tracksReady = webRtcClient.awaitLocalTracks()
+                    if (!tracksReady) {
+                        android.util.Log.e(TAG, "Local tracks failed to initialize — cannot start call")
+                        _matchState.value = MatchUiState.Error("Camera initialization failed")
+                        return@launch
+                    }
+                }
+                android.util.Log.d(TAG, "Creating PeerConnection with local tracks ready...")
+                webRtcClient.createPeerConnection()
+                android.util.Log.d(TAG, "PeerConnection created. Ready=${webRtcClient.isPeerConnectionReady}")
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error creating PeerConnection", e)
+            }
         }
 
         // Pass "AUTO" to let the server detect country via GeoIP

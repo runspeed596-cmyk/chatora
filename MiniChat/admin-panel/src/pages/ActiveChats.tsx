@@ -25,11 +25,22 @@ export const ActiveChats: React.FC = () => {
     const { data, isLoading, error, refetch, dataUpdatedAt } = useQuery({
         queryKey: ['active-chats'],
         queryFn: async () => {
-            const { data } = await api.get<{ success: boolean; data: ActiveMatch[] }>('/admin/active-chats');
-            return data.data || [];
+            const response = await api.get('/admin/active-chats');
+            const payload = response.data;
+            // Handle ApiResponse wrapper: { success: boolean, data: [...], message: string }
+            if (payload && typeof payload === 'object' && 'data' in payload && Array.isArray(payload.data)) {
+                return payload.data as ActiveMatch[];
+            }
+            // Fallback: response is the array directly
+            if (Array.isArray(payload)) {
+                return payload as ActiveMatch[];
+            }
+            console.warn('Unexpected active-chats response format:', payload);
+            return [];
         },
         refetchInterval: 3000, // Auto-refresh every 3 seconds
         refetchIntervalInBackground: true,
+        retry: 2,
     });
 
     const matches = data || [];
@@ -91,6 +102,15 @@ export const ActiveChats: React.FC = () => {
             ) : error ? (
                 <div className="text-center py-20">
                     <p className="text-red-500 font-vazir">خطا در بارگذاری داده‌ها</p>
+                    <p className="text-red-400 text-sm mt-2 font-mono" dir="ltr">
+                        {error instanceof Error ? error.message : String(error)}
+                    </p>
+                    <button
+                        onClick={() => refetch()}
+                        className="mt-4 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg font-vazir transition-colors"
+                    >
+                        تلاش مجدد
+                    </button>
                 </div>
             ) : matches.length === 0 ? (
                 <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800">

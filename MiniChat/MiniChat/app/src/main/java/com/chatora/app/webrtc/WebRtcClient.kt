@@ -9,6 +9,7 @@ import kotlinx.coroutines.*
 import org.json.JSONObject
 import org.webrtc.*
 import org.webrtc.audio.JavaAudioDeviceModule
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -73,10 +74,22 @@ class WebRtcClient @Inject constructor(
     var isPeerConnectionReady = false
         private set
 
+    // LOCAL TRACK READINESS: CompletableDeferred signals when camera+audio are initialized.
+    // Awaited by ViewModel before createPeerConnection() to guarantee non-null tracks.
+    private var localTracksDeferred = CompletableDeferred<Boolean>()
+
+    @Volatile
+    var areLocalTracksInitialized = false
+        private set
+
+    // Guard against stale PeerConnection callbacks after close
+    private val isPeerConnectionActive = AtomicBoolean(false)
+
     companion object {
         private const val TAG = "WebRtcClient"
         private const val ICE_RECOVERY_TIMEOUT_MS = 8000L
         private const val AUDIO_VERIFY_DELAY_MS = 2000L
+        private const val ICE_RESTART_MAX_ATTEMPTS = 3
     }
 
     init {
@@ -132,7 +145,11 @@ class WebRtcClient @Inject constructor(
         // Move ALL heavy WebRTC init to background thread — prevents ANR
         scope.launch {
             try {
-                videoCapturer = createCameraCapturer(context) ?: return@launch
+                videoCapturer = createCameraCapturer(context) ?: run {
+                    android.util.Log.e(TAG, "Failed to create camera capturer")
+                    if (!localTracksDeferred.isCompleted) localTracksDeferred.complete(false)
+                    return@launch
+                }
 
                 val videoSource = factory.createVideoSource(videoCapturer!!.isScreencast)
                 videoCapturer!!.initialize(surfaceTextureHelper, context, videoSource.capturerObserver)
@@ -155,9 +172,12 @@ class WebRtcClient @Inject constructor(
                 enableSpeakerphone()
 
                 isCameraRunning = true
-                android.util.Log.d(TAG, "Camera + Audio initialized on background thread")
+                areLocalTracksInitialized = true
+                if (!localTracksDeferred.isCompleted) localTracksDeferred.complete(true)
+                android.util.Log.d(TAG, "Camera + Audio initialized. Local tracks ready for PeerConnection.")
             } catch (e: Exception) {
                 android.util.Log.e(TAG, "Error initializing camera on background thread", e)
+                if (!localTracksDeferred.isCompleted) localTracksDeferred.complete(false)
             }
         }
     }
@@ -352,6 +372,11 @@ class WebRtcClient @Inject constructor(
                 override fun onIceConnectionReceivingChange(p0: Boolean) {}
 
                 override fun onIceConnectionChange(newState: PeerConnection.IceConnectionState?) {
+                    // Guard against stale callbacks from disposed PeerConnection
+                    if (!isPeerConnectionActive.get()) {
+                        android.util.Log.w(TAG, "ICE Connection State: $newState (IGNORED — PC inactive)")
+                        return
+                    }
                     android.util.Log.d(TAG, "ICE Connection State: $newState")
                     when (newState) {
                         PeerConnection.IceConnectionState.CONNECTED,
@@ -366,10 +391,12 @@ class WebRtcClient @Inject constructor(
                             startIceRecovery()
                         }
                         PeerConnection.IceConnectionState.FAILED -> {
-                            android.util.Log.e(TAG, "ICE FAILED — attempting single ICE restart")
+                            android.util.Log.e(TAG, "ICE FAILED — attempting ICE restart")
                             iceRecoveryJob?.cancel()
                             try {
-                                peerConnection?.restartIce()
+                                synchronized(pcLock) {
+                                    peerConnection?.restartIce()
+                                }
                             } catch (e: Exception) {
                                 android.util.Log.e(TAG, "ICE restart failed", e)
                             }
@@ -390,6 +417,11 @@ class WebRtcClient @Inject constructor(
                 override fun onRenegotiationNeeded() {}
 
                 override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
+                    // Guard against stale callbacks from disposed PeerConnection
+                    if (!isPeerConnectionActive.get()) {
+                        android.util.Log.w(TAG, "PeerConnection State: $newState (IGNORED — PC inactive)")
+                        return
+                    }
                     android.util.Log.d(TAG, "PeerConnection State: $newState")
                     newState?.let {
                         onConnectionStateChanged?.invoke(it)
@@ -401,6 +433,10 @@ class WebRtcClient @Inject constructor(
                 }
 
                 override fun onTrack(transceiver: RtpTransceiver?) {
+                    if (!isPeerConnectionActive.get()) {
+                        android.util.Log.w(TAG, "onTrack: IGNORED (PC inactive)")
+                        return
+                    }
                     transceiver?.receiver?.track()?.let { track ->
                         when (track.kind()) {
                             "video" -> {
@@ -423,12 +459,55 @@ class WebRtcClient @Inject constructor(
                 }
             })
 
-            // Add Local Tracks
-            localVideoTrack?.let { peerConnection?.addTrack(it, listOf("stream1")) }
-            localAudioTrack?.let { peerConnection?.addTrack(it, listOf("stream1")) }
+            // Add Local Tracks — guaranteed non-null if awaitLocalTracks() was called first
+            addLocalTracksToPeerConnection()
 
+            isPeerConnectionActive.set(true)
             isPeerConnectionReady = true
             android.util.Log.d(TAG, "PeerConnection created and ready. Local tracks: video=${localVideoTrack != null}, audio=${localAudioTrack != null}")
+        }
+    }
+
+    /**
+     * Add local video and audio tracks to the active PeerConnection.
+     * Logs warnings if tracks are null (indicates startLocalVideo hasn't finished).
+     */
+    private fun addLocalTracksToPeerConnection() {
+        val pc = peerConnection ?: return
+        localVideoTrack?.let {
+            pc.addTrack(it, listOf("stream1"))
+            android.util.Log.d(TAG, "Added local VIDEO track to PeerConnection")
+        } ?: android.util.Log.w(TAG, "localVideoTrack is NULL — video won't be sent to partner!")
+        localAudioTrack?.let {
+            pc.addTrack(it, listOf("stream1"))
+            android.util.Log.d(TAG, "Added local AUDIO track to PeerConnection")
+        } ?: android.util.Log.w(TAG, "localAudioTrack is NULL — audio won't be sent to partner!")
+    }
+
+    /**
+     * Suspend until local video + audio tracks are initialized.
+     * Must be called before createPeerConnection() to guarantee tracks are non-null.
+     */
+    suspend fun awaitLocalTracks(): Boolean {
+        return localTracksDeferred.await()
+    }
+
+    /**
+     * Public wrapper for ICE restart — called by MatchViewModel when connection
+     * enters DISCONNECTED or FAILED state. Thread-safe via pcLock.
+     */
+    fun restartIce() {
+        synchronized(pcLock) {
+            try {
+                if (peerConnection != null && isPeerConnectionActive.get()) {
+                    android.util.Log.d(TAG, "restartIce() called — restarting ICE on active PeerConnection")
+                    peerConnection?.restartIce()
+                } else {
+                    android.util.Log.w(TAG, "restartIce() called but PeerConnection is null or inactive")
+                }
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "restartIce() failed", e)
+            }
         }
     }
 
@@ -567,50 +646,50 @@ class WebRtcClient @Inject constructor(
         }
     }
 
-    /**
-     * Restart ICE gathering to recover from failed/disconnected connections.
-     * Called by ViewModel when connection state is DISCONNECTED.
-     */
-    fun restartIce() {
-        android.util.Log.d(TAG, "Restarting ICE...")
-        hasRemoteDescription = false
-        synchronized(pendingIceCandidates) {
-            pendingIceCandidates.clear()
-        }
-        synchronized(pcLock) {
-            peerConnection?.restartIce()
-        }
-    }
 
     fun closePeerConnection() {
         synchronized(pcLock) {
             try {
                 android.util.Log.d(TAG, "closePeerConnection: Disposing...")
+                // Mark inactive FIRST to prevent stale callbacks
+                isPeerConnectionActive.set(false)
                 isPeerConnectionReady = false
                 iceRecoveryJob?.cancel()
                 iceRecoveryJob = null
 
+                // Detach remote tracks from renderer
                 remoteVideoTrack?.let { track ->
-                    track.setEnabled(false)
-                    remoteRenderer?.let { track.removeSink(it) }
+                    try {
+                        track.setEnabled(false)
+                        remoteRenderer?.let { track.removeSink(it) }
+                    } catch (e: Exception) {
+                        android.util.Log.w(TAG, "Error detaching remote video track", e)
+                    }
                 }
 
                 remoteAudioTrack?.let { track ->
-                    track.setEnabled(false)
+                    try { track.setEnabled(false) } catch (e: Exception) { /* ignore */ }
                 }
 
+                // Dispose PC — but do NOT dispose local tracks!
+                // Local tracks (video + audio) are created once by startLocalVideo()
+                // and reused across all PeerConnections for the entire session.
                 peerConnection?.dispose()
                 peerConnection = null
                 remoteVideoTrack = null
                 remoteAudioTrack = null
                 // CRITICAL: DO NOT set remoteRenderer = null here.
                 // It is provided once by the UI and must survive match transitions.
+                // CRITICAL: DO NOT null out localVideoTrack or localAudioTrack.
+                // They must survive across match transitions.
 
                 hasRemoteDescription = false
                 hasHandledOffer = false
                 synchronized(pendingIceCandidates) {
                     pendingIceCandidates.clear()
                 }
+
+                android.util.Log.d(TAG, "closePeerConnection: Done. Local tracks preserved: video=${localVideoTrack != null}, audio=${localAudioTrack != null}")
             } catch (e: Exception) {
                 android.util.Log.e(TAG, "Error in closePeerConnection", e)
             }

@@ -39,9 +39,9 @@ android {
                 getDefaultProguardFile("proguard-android.txt"),
                 "proguard-rules.pro"
             )
-            // CRITICAL FIX: Production MUST use HTTPS and WSS
-            buildConfigField("String", "API_BASE_URL", "\"https://172.86.95.177/\"")
-            buildConfigField("String", "WS_URL", "\"wss://172.86.95.177/ws-native\"")
+            // TODO: Switch to HTTPS/WSS once SSL certificate is installed
+            buildConfigField("String", "API_BASE_URL", "\"http://172.86.95.177/\"")
+            buildConfigField("String", "WS_URL", "\"ws://172.86.95.177/ws-native\"")
             buildConfigField("Boolean", "ENABLE_LOGGING", "false")
             // TURN server config — replace with your own TURN credentials for production
             buildConfigField("String", "TURN_URL", "\"turn:openrelay.metered.ca:443\"")

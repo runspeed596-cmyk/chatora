@@ -17,8 +17,11 @@
 7. [Step 6 — Testing WebRTC Fixes](#7-step-6--testing-webrtc-fixes)
 8. [Step 7 — Testing Admin Panel Live Chats](#8-step-7--testing-admin-panel-live-chats)
 9. [Step 8 — TURN Server Setup (Optional but Recommended)](#9-step-8--turn-server-setup-optional-but-recommended)
-10. [Rollback Plan](#10-rollback-plan)
-11. [Troubleshooting](#11-troubleshooting)
+10. [Step 9 — Deploy Latest WebRTC & Admin Fixes (v2.1)](#10-step-9--deploy-latest-webrtc--admin-fixes-v21)
+11. [Step 10 — Build APK After Latest Fixes](#11-step-10--build-apk-after-latest-fixes)
+12. [Step 11 — KMP Multiplatform Build Guide (Web & iOS)](#12-step-11--kmp-multiplatform-build-guide-web--ios)
+13. [Rollback Plan](#13-rollback-plan)
+14. [Troubleshooting](#14-troubleshooting)
 
 ---
 
@@ -390,7 +393,297 @@ buildConfigField("String", "TURN_PASSWORD", "\"YOUR_STRONG_PASSWORD\"")
 
 ---
 
-## 10. Rollback Plan
+## 10. Step 9 — Deploy Latest WebRTC & Admin Fixes (v2.1)
+
+> **Changes:** WebRTC connection reliability rewrite (6 bug fixes) + Admin panel ActiveChats error handling improvement.
+
+### 10.1 Push Latest Code
+
+On your **local machine** (Windows):
+
+```powershell
+cd e:\Learn\programming\ponisha\MiniChat
+
+git add -A
+
+git commit -m "fix: WebRTC production reliability v2.1 + admin panel fix
+
+- Add CompletableDeferred for local track readiness (fixes black screen)
+- Preserve local tracks across PeerConnection recreations
+- Guard stale callbacks with isPeerConnectionActive AtomicBoolean
+- FAILED state: ICE restart + re-offer instead of auto-findNext
+- debouncedFindMatch no longer calls stopMatching (state corruption fix)
+- handleMatchFound always creates fresh PC with awaited local tracks
+- Admin ActiveChats: robust response parsing + retry button"
+
+git push origin main
+```
+
+### 10.2 Update Backend (Spring Boot)
+
+```bash
+# SSH into VPS
+ssh root@172.86.95.177
+
+# Pull latest changes
+cd ~/apps/MiniChat
+git pull origin main
+
+# Backup database
+docker exec minichat-postgres pg_dump -U postgres minichat | gzip > /opt/backups/postgres/minichat_pre_v2.1.sql.gz
+
+# Rebuild backend
+cd SpringBoot
+docker compose --env-file .env up -d --build
+
+# Wait and verify
+sleep 30
+docker compose ps
+curl http://localhost:8080/auth/health
+
+# Check for errors
+docker compose logs --tail=30 api
+```
+
+### 10.3 Update Admin Panel
+
+```bash
+# Navigate to admin panel
+cd ~/apps/MiniChat/admin-panel
+
+# Install dependencies (if changed)
+npm install
+
+# Build production bundle
+npm run build
+
+# Deploy to Nginx
+# Option A: Static files
+cp -r dist/* /var/www/admin-panel/
+
+# Option B: Docker
+# docker build -t minichat-admin .
+# docker stop minichat-admin && docker rm minichat-admin
+# docker run -d --name minichat-admin -p 3001:80 minichat-admin
+```
+
+### 10.4 Verify Admin Panel Fix
+
+```bash
+# Test active-chats endpoint
+curl -H "Authorization: Bearer YOUR_ADMIN_TOKEN" http://localhost:8080/admin/active-chats
+```
+
+Expected: `{"success": true, "data": []}` — Then open admin panel in browser → Active Chats should load without error.
+
+---
+
+## 11. Step 10 — Build APK After Latest Fixes
+
+On your **local machine** (Windows):
+
+```powershell
+cd e:\Learn\programming\ponisha\MiniChat\MiniChat
+
+# Verify compilation
+.\gradlew.bat compileDebugKotlin
+
+# Build release APK
+.\gradlew.bat assembleRelease
+
+# APK location:
+# app\build\outputs\apk\release\app-release.apk
+```
+
+Install on **2 physical devices** and run all tests from [Section 7](#7-step-6--testing-webrtc-fixes).
+
+### New Log Messages to Watch
+
+```bash
+adb logcat | grep -E "WebRtcClient|MatchViewModel"
+```
+
+| Log | Meaning |
+|-----|---------|
+| `Camera + Audio initialized. Local tracks ready` | ✅ Tracks ready before PC creation |
+| `Added local VIDEO track to PeerConnection` | ✅ Video will be sent to partner |
+| `Added local AUDIO track to PeerConnection` | ✅ Audio will be sent to partner |
+| `localVideoTrack is NULL` | ❌ Camera init failed — investigate |
+| `ICE Connection State: ... (IGNORED — PC inactive)` | ✅ Stale callback filtered |
+| `closePeerConnection: Done. Local tracks preserved` | ✅ Tracks survive match transition |
+| `Creating fresh PeerConnection for match` | ✅ New PC for each match |
+| `Connection FAILED — attempting recovery` | ⚠️ Will try ICE restart, not auto-findNext |
+| `ICE restart did not recover — re-creating offer` | ⚠️ Last resort recovery attempt |
+
+---
+
+## 12. Step 11 — KMP Multiplatform Build Guide (Web & iOS)
+
+> ⚠️ **IMPORTANT:** The current project is a standard Android-only project. Converting to KMP is a **major migration** requiring significant restructuring. This section describes what's needed — it is NOT a simple toggle.
+
+### 12.1 Current Architecture vs KMP Architecture
+
+```
+CURRENT (Android-only):            KMP TARGET:
+┌──────────────────────┐           ┌──────────────────────┐
+│     MiniChat/        │           │     MiniChat/        │
+│  app/ (Android)      │           │  shared/             │
+│    └─ src/main/      │           │    └─ commonMain/    │ ← Shared logic
+│       ├─ webrtc/     │           │    └─ androidMain/   │ ← Android specifics
+│       ├─ viewmodels/ │           │    └─ iosMain/       │ ← iOS specifics
+│       ├─ data/       │           │    └─ jsMain/        │ ← Web specifics
+│       └─ ui/         │           │  androidApp/         │ ← Android UI (Compose)
+│                      │           │  iosApp/             │ ← iOS UI (SwiftUI)
+│                      │           │  webApp/             │ ← Web UI (Compose/Web)
+└──────────────────────┘           └──────────────────────┘
+```
+
+### 12.2 Dependencies That Need Migration
+
+| Current (Android) | KMP Replacement | Notes |
+|-------------------|-----------------|-------|
+| Hilt (DI) | **Koin** | Koin supports KMP natively |
+| Room (DB) | **SQLDelight** | Cross-platform SQL |
+| Retrofit (HTTP) | **Ktor Client** | KMP-native HTTP |
+| OkHttp (WebSocket) | **Ktor WebSocket** | Built-in support |
+| Jetpack Compose (UI) | **Compose Multiplatform** | Supports Android, iOS, Web |
+| CameraX | **Platform-specific** | No KMP equivalent |
+| WebRTC | **Platform-specific** | Separate impl per platform |
+| EncryptedSharedPrefs | **multiplatform-settings** | KMP settings library |
+| AndroidX Navigation | **Voyager / Decompose** | KMP navigation |
+
+### 12.3 How to Build for Web (Kotlin/JS)
+
+**Step 1:** Add the Compose for Web plugin to root `build.gradle.kts`:
+
+```kotlin
+plugins {
+    kotlin("multiplatform") version "2.1.0"
+    id("org.jetbrains.compose") version "1.7.3"
+    id("org.jetbrains.kotlin.plugin.compose") version "2.1.0"
+}
+```
+
+**Step 2:** Configure the `webApp/` module:
+
+```kotlin
+kotlin {
+    js(IR) {
+        browser {
+            commonWebpackConfig {
+                outputFileName = "minichat.js"
+            }
+        }
+        binaries.executable()
+    }
+    sourceSets {
+        val jsMain by getting {
+            dependencies {
+                implementation(compose.html.core)
+                implementation(compose.runtime)
+                implementation(project(":shared"))
+            }
+        }
+    }
+}
+```
+
+**Step 3:** Build and run:
+
+```bash
+# Development server
+./gradlew :webApp:jsBrowserDevelopmentRun
+
+# Production build
+./gradlew :webApp:jsBrowserDistribution
+# Output: webApp/build/dist/js/productionExecutable/
+```
+
+**WebRTC for Web:** Use JavaScript WebRTC API via Kotlin/JS `external` declarations:
+
+```kotlin
+// jsMain — wrap browser WebRTC API
+external class RTCPeerConnection(config: dynamic) {
+    fun createOffer(): Promise<dynamic>
+    fun setLocalDescription(desc: dynamic): Promise<Unit>
+    // ...
+}
+```
+
+### 12.4 How to Build for iOS (Kotlin/Native)
+
+**Step 1:** Add iOS target to `shared/build.gradle.kts`:
+
+```kotlin
+kotlin {
+    androidTarget()
+    iosX64()      // Intel Mac simulator
+    iosArm64()    // Physical iPhone
+    iosSimulatorArm64()  // Apple Silicon simulator
+    
+    cocoapods {
+        summary = "MiniChat Shared Module"
+        homepage = "https://github.com/your/repo"
+        ios.deploymentTarget = "16.0"
+        framework { baseName = "shared" }
+        
+        // WebRTC pod for iOS
+        pod("GoogleWebRTC") { version = "~> 1.1" }
+    }
+}
+```
+
+**Step 2:** Create the iOS app in Xcode:
+
+```bash
+# Generate the shared framework
+./gradlew :shared:linkDebugFrameworkIosArm64
+
+# Output: shared/build/bin/iosArm64/debugFramework/shared.framework
+```
+
+**Step 3:** In Xcode, create a new SwiftUI project (`iosApp/`) and embed the framework:
+
+```swift
+import shared  // The KMP shared module
+
+struct ContentView: View {
+    let viewModel = MatchViewModelWrapper()
+    var body: some View {
+        // Use shared logic from Kotlin
+        Text(viewModel.state)
+    }
+}
+```
+
+**Step 4:** Build for iOS:
+
+```bash
+# Build framework for all iOS architectures
+./gradlew :shared:linkReleaseFrameworkIosArm64
+
+# Then build in Xcode:
+# Open iosApp/iosApp.xcworkspace → Build (⌘+B)
+```
+
+### 12.5 Migration Timeline Estimate
+
+| Phase | Task | Duration |
+|-------|------|----------|
+| 1 | Create `shared` module + move data models | 2-3 days |
+| 2 | Migrate Hilt → Koin, Room → SQLDelight | 3-5 days |
+| 3 | Migrate Retrofit → Ktor, OkHttp WS → Ktor WS | 3-5 days |
+| 4 | Platform-specific WebRTC implementations | 5-7 days |
+| 5 | Web UI (Compose for Web) | 5-7 days |
+| 6 | iOS UI (SwiftUI + shared framework) | 5-7 days |
+| 7 | Testing + CI/CD for all platforms | 3-5 days |
+| **Total** | | **~4-6 weeks** |
+
+> **Recommendation:** Complete all current fixes, stabilize the Android app, then start KMP migration as a new phase.
+
+---
+
+## 13. Rollback Plan
 
 If the new changes cause issues in production:
 
@@ -426,7 +719,7 @@ npm install && npm run build
 
 ---
 
-## 11. Troubleshooting
+## 14. Troubleshooting
 
 ### Problem: Black screen after connecting
 
