@@ -32,7 +32,7 @@ class MatchViewModel @Inject constructor(
         private const val TAG = "MINICHAT_DEBUG"
         private const val FIND_MATCH_DEBOUNCE_MS = 2000L
         private const val INITIATOR_DELAY_MS = 2000L
-        private const val CONNECTION_TIMEOUT_MS = 25000L
+        private const val CONNECTION_TIMEOUT_MS = 40000L
         private const val MATCHING_TIMEOUT_MS = 30000L
         private const val PARTNER_LEFT_DELAY_MS = 1500L
         private const val FAILED_STATE_DELAY_MS = 3000L

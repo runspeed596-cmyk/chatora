@@ -279,6 +279,12 @@ class WebRtcClient @Inject constructor(
         servers.add(PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer())
         servers.add(PeerConnection.IceServer.builder("stun:stun3.l.google.com:19302").createIceServer())
         servers.add(PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer())
+        servers.add(PeerConnection.IceServer.builder("stun:stun.services.mozilla.com").createIceServer())
+        servers.add(PeerConnection.IceServer.builder("stun:stun.ekiga.net").createIceServer())
+        servers.add(PeerConnection.IceServer.builder("stun:stun.voiparound.com").createIceServer())
+        servers.add(PeerConnection.IceServer.builder("stun:stun.voipbuster.com").createIceServer())
+        servers.add(PeerConnection.IceServer.builder("stun:stun.voipstunt.com").createIceServer())
+        servers.add(PeerConnection.IceServer.builder("stun:stun.voxgratia.org").createIceServer())
 
         // TURN servers from BuildConfig — critical for users behind strict NATs/firewalls
         val turnUrl = BuildConfig.TURN_URL

@@ -858,7 +858,7 @@ fun PremiumChatBubble(msg: ChatMessage, onMediaClick: (String, String) -> Unit =
             modifier = Modifier.widthIn(max = 280.dp)
         ) {
             Column {
-                if (msg.mediaUrl != null) {
+                if (!msg.mediaUrl.isNullOrBlank()) {
                     MediaPreview(
                         url = msg.mediaUrl,
                         mediaType = msg.mediaType ?: "image/*",

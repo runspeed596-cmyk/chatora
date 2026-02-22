@@ -217,8 +217,8 @@ class WebSocketManager @Inject constructor(
                     Log.d(TAG, "Chat message received: $jsonBody")
                     val sender = json.optString("sender")
                     val message = json.optString("message")
-                    val mediaUrl = json.optString("mediaUrl", null)
-                    val mediaType = json.optString("mediaType", null)
+                    val mediaUrl = if (json.isNull("mediaUrl")) null else json.optString("mediaUrl").takeIf { it.isNotBlank() }
+                    val mediaType = if (json.isNull("mediaType")) null else json.optString("mediaType").takeIf { it.isNotBlank() }
                     _events.tryEmit(WebSocketEvent.ChatMessage(sender, message, mediaUrl, mediaType))
                 }
             }
