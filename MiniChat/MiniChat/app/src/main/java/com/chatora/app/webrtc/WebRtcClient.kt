@@ -100,8 +100,21 @@ class WebRtcClient @Inject constructor(
         private const val SDP_BANDWIDTH_LIMIT_KBPS = 1800    // Total session cap in kbps (b=AS:)
     }
 
-    init {
-        initializeFactory()
+    // Lazy init flag — factory initialization deferred until first use
+    // to prevent ANR during ViewModel creation on the main thread.
+    @Volatile
+    private var isFactoryInitialized = false
+    private val factoryLock = Any()
+
+    private fun ensureFactoryInitialized() {
+        if (isFactoryInitialized) return
+        synchronized(factoryLock) {
+            if (isFactoryInitialized) return
+            android.util.Log.d(TAG, "Lazy-initializing PeerConnectionFactory...")
+            initializeFactory()
+            isFactoryInitialized = true
+            android.util.Log.d(TAG, "PeerConnectionFactory initialized successfully")
+        }
     }
 
     private fun initializeFactory() {
@@ -153,6 +166,8 @@ class WebRtcClient @Inject constructor(
         // Move ALL heavy WebRTC init to background thread — prevents ANR
         scope.launch {
             try {
+                // Ensure factory is ready (lazy init — first call initializes it)
+                ensureFactoryInitialized()
                 videoCapturer = createCameraCapturer(context) ?: run {
                     android.util.Log.e(TAG, "Failed to create camera capturer")
                     if (!localTracksDeferred.isCompleted) localTracksDeferred.complete(false)
@@ -377,6 +392,9 @@ class WebRtcClient @Inject constructor(
             pendingIceCandidates.clear()
             iceRecoveryJob?.cancel()
             remoteAudioTrack = null
+
+            // Ensure factory is ready (lazy init — should already be initialized by startLocalVideo)
+            ensureFactoryInitialized()
 
             // Safety: dispose leftover PC if caller forgot to close
             peerConnection?.let {
@@ -879,7 +897,11 @@ class WebRtcClient @Inject constructor(
             r?.let {
                 remoteVideoTrack?.removeSink(it)
             }
-            onRemoteVideoTrackReceived = null
+            // DO NOT null out onRemoteVideoTrackReceived here.
+            // It is set once by MatchViewModel.initRemoteVideo() and must
+            // persist across all match transitions for the entire session.
+            // Nulling it caused subsequent matches to never receive remote
+            // video tracks, resulting in a 3-second freeze.
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Error in clearRemoteVideoTrack", e)
         }
