@@ -101,8 +101,16 @@ fun HomeScreen(
     // Gender Selection State — genderDialogShown persists across recomposition & config changes
     var genderDialogShown by rememberSaveable { mutableStateOf(false) }
     
-    // Derive dialog visibility directly — no LaunchedEffect, no snapshotFlow, no race conditions
-    val showGenderDialog = user != null && user?.gender == "UNSPECIFIED" && !genderDialogShown
+    // ANR fix: defer dialog display to avoid blocking UI rendering during first-launch.
+    // On slow devices / release builds, showing a Dialog during initial composition causes ANR.
+    var readyForDialog by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(1500L)
+        readyForDialog = true
+    }
+    
+    // Derive dialog visibility directly — deferred by readyForDialog to prevent ANR
+    val showGenderDialog = readyForDialog && user != null && user?.gender == "UNSPECIFIED" && !genderDialogShown
 
     // Media State
     var selectedMediaUrl by remember { mutableStateOf<String?>(null) }

@@ -378,27 +378,10 @@ class MatchViewModel @Inject constructor(
         // Clean up old match state WITHOUT sending leave to server
         cleanupCurrentMatch()
 
-        // CRITICAL FIX: Ensure local tracks are initialized before creating PeerConnection.
-        // startLocalVideo() runs async — without awaiting, tracks are null and the partner
-        // sees a black screen because no video/audio tracks are added to the PeerConnection.
-        viewModelScope.launch {
-            try {
-                if (!webRtcClient.areLocalTracksInitialized) {
-                    android.util.Log.d(TAG, "Waiting for local tracks to initialize...")
-                    val tracksReady = webRtcClient.awaitLocalTracks()
-                    if (!tracksReady) {
-                        android.util.Log.e(TAG, "Local tracks failed to initialize — cannot start call")
-                        _matchState.value = MatchUiState.Error("Camera initialization failed")
-                        return@launch
-                    }
-                }
-                android.util.Log.d(TAG, "Creating PeerConnection with local tracks ready...")
-                webRtcClient.createPeerConnection()
-                android.util.Log.d(TAG, "PeerConnection created. Ready=${webRtcClient.isPeerConnectionReady}")
-            } catch (e: Exception) {
-                android.util.Log.e(TAG, "Error creating PeerConnection", e)
-            }
-        }
+        // NOTE: PeerConnection is NOT created here. It is created in handleMatchFound()
+        // after we know the partner and initiator role. Creating it here caused a race
+        // condition where this async coroutine and handleMatchFound() both created PCs,
+        // resulting in a dead connection on subsequent matches.
 
         // Pass "AUTO" to let the server detect country via GeoIP
         val myCountry = "AUTO"

@@ -58,6 +58,9 @@ class MatchService(
     
     // In-memory chat buffer for admin monitoring (ephemeral)
     private val matchMessages = ConcurrentHashMap<String, MutableList<ChatMessageResponse>>()
+    // TTL tracking: matchId -> epoch millis when the match ended (messages kept for MESSAGE_TTL_MS after)
+    private val matchEndTimes = ConcurrentHashMap<String, Long>()
+    private val MESSAGE_TTL_MS = 5 * 60 * 1000L // 5 minutes
 
     // ANTI-CYCLING: Server-side protection against duplicate joinQueue requests
     private val lastJoinTime = ConcurrentHashMap<String, Long>() // username -> timestamp
@@ -347,7 +350,9 @@ class MatchService(
         
         if (matchId != null) {
             storageService.cleanup(matchId)
-            matchMessages.remove(matchId)
+            // Don't delete messages immediately — mark for TTL-based cleanup
+            // so admins can still view chat history for a few minutes after match ends
+            matchEndTimes[matchId] = System.currentTimeMillis()
         }
 
         if (partnerUsername != null) {
@@ -394,5 +399,24 @@ class MatchService(
      */
     fun getMatchMessages(matchId: String): List<ChatMessageResponse> {
         return matchMessages[matchId]?.toList() ?: emptyList()
+    }
+
+    /**
+     * Periodic cleanup of expired chat message buffers.
+     * Messages are kept for [MESSAGE_TTL_MS] after the match ends,
+     * giving admins time to view chat history.
+     */
+    @Scheduled(fixedDelay = 60_000) // Run every 60 seconds
+    fun cleanupExpiredMessages() {
+        val now = System.currentTimeMillis()
+        val expired = matchEndTimes.entries.filter { (_, endTime) -> (now - endTime) > MESSAGE_TTL_MS }
+        for ((matchId, _) in expired) {
+            matchMessages.remove(matchId)
+            matchEndTimes.remove(matchId)
+            logger.debug("Cleaned up expired chat buffer for match $matchId")
+        }
+        if (expired.isNotEmpty()) {
+            logger.info("Cleaned up ${expired.size} expired chat buffer(s)")
+        }
     }
 }
