@@ -53,7 +53,15 @@ class TokenManager @Inject constructor(@ApplicationContext context: Context) {
     }
 
     fun clearToken() {
-        securePrefs.edit().remove("access_token").apply()
+        securePrefs.edit().remove("access_token").remove("refresh_token").apply()
+    }
+
+    fun saveRefreshToken(token: String?) {
+        securePrefs.edit().putString("refresh_token", token).apply()
+    }
+
+    fun getRefreshToken(): String? {
+        return securePrefs.getString("refresh_token", null)
     }
 
     // ─── Device ID (Encrypted) ───

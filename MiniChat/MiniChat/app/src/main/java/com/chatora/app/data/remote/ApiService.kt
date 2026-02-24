@@ -57,6 +57,10 @@ data class AuthResponse(
     val verificationCode: String? = null
 )
 
+data class RefreshTokenRequest(
+    val refreshToken: String
+)
+
 interface ApiService {
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): Response<ApiResponse<AuthResponse>>
@@ -75,6 +79,9 @@ interface ApiService {
 
     @POST("auth/email/resend-code")
     suspend fun resendCode(@Body request: EmailResendRequest): Response<ApiResponse<Map<String, String>>>
+
+    @POST("auth/refresh")
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<ApiResponse<AuthResponse>>
 
     @GET("users/me")
     suspend fun getMe(): Response<ApiResponse<UserDto>>

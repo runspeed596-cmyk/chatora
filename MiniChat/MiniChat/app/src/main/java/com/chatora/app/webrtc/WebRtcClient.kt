@@ -90,6 +90,14 @@ class WebRtcClient @Inject constructor(
         private const val ICE_RECOVERY_TIMEOUT_MS = 8000L
         private const val AUDIO_VERIFY_DELAY_MS = 2000L
         private const val ICE_RESTART_MAX_ATTEMPTS = 3
+
+        // Adaptive bitrate constraints (kbps)
+        // Start at HIGH quality — WebRTC will adapt DOWN if network is slow
+        private const val VIDEO_MAX_BITRATE_BPS = 1_500_000  // 1.5 Mbps — great quality on good networks
+        private const val VIDEO_MIN_BITRATE_BPS = 100_000    // 100 kbps — minimum usable video
+        private const val VIDEO_START_BITRATE_BPS = 800_000  // 800 kbps — balanced start
+        private const val AUDIO_MAX_BITRATE_BPS = 64_000     // 64 kbps — Opus default
+        private const val SDP_BANDWIDTH_LIMIT_KBPS = 1800    // Total session cap in kbps (b=AS:)
     }
 
     init {
@@ -267,39 +275,80 @@ class WebRtcClient @Inject constructor(
     }
 
     /**
-     * Build ICE server list from BuildConfig TURN credentials + Google STUN servers.
-     * Uses multiple transport protocols for maximum NAT traversal.
+     * Build ICE server list with multiple STUN + TURN servers.
+     *
+     * CRITICAL for Iranian ISPs: Direct P2P between Irancell and Hamrah-e-Aval
+     * almost always fails due to symmetric NAT. A reliable TURN relay is MANDATORY.
+     *
+     * Priority order:
+     * 1. User's own VPS TURN (most reliable, closest geographically)
+     * 2. BuildConfig TURN (configurable)
+     * 3. Free TURN servers as fallback
+     * 4. Multiple STUN servers for P2P when possible
      */
     private fun buildIceServers(): List<PeerConnection.IceServer> {
         val servers = mutableListOf<PeerConnection.IceServer>()
 
-        // Multiple STUN servers for redundancy
+        // ── STUN servers (for P2P discovery when NAT allows it) ──
         servers.add(PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer())
         servers.add(PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer())
         servers.add(PeerConnection.IceServer.builder("stun:stun2.l.google.com:19302").createIceServer())
         servers.add(PeerConnection.IceServer.builder("stun:stun3.l.google.com:19302").createIceServer())
         servers.add(PeerConnection.IceServer.builder("stun:stun4.l.google.com:19302").createIceServer())
-        servers.add(PeerConnection.IceServer.builder("stun:stun.services.mozilla.com").createIceServer())
-        servers.add(PeerConnection.IceServer.builder("stun:stun.ekiga.net").createIceServer())
-        servers.add(PeerConnection.IceServer.builder("stun:stun.voiparound.com").createIceServer())
-        servers.add(PeerConnection.IceServer.builder("stun:stun.voipbuster.com").createIceServer())
-        servers.add(PeerConnection.IceServer.builder("stun:stun.voipstunt.com").createIceServer())
-        servers.add(PeerConnection.IceServer.builder("stun:stun.voxgratia.org").createIceServer())
 
-        // TURN servers from BuildConfig — critical for users behind strict NATs/firewalls
+        // ── PRIMARY TURN: User's own VPS ──
+        // This is the most reliable option for Iranian users since it's geographically close
+        // and not blocked. Requires coturn to be installed on the VPS.
+        val vpsIp = BuildConfig.API_BASE_URL
+            .replace("http://", "")
+            .replace("https://", "")
+            .split(":")[0] // Cleanly extract ONLY the IP/Domain, removing ports/paths
+            .trimEnd('/')
+        
+        if (vpsIp.isNotEmpty()) {
+            // UDP TURN on standard port
+            servers.add(
+                PeerConnection.IceServer.builder("turn:$vpsIp:3478")
+                    .setUsername("chatora")
+                    .setPassword("chatora2024")
+                    .createIceServer()
+            )
+            // TCP TURN (for networks that block UDP)
+            servers.add(
+                PeerConnection.IceServer.builder("turn:$vpsIp:3478?transport=tcp")
+                    .setUsername("chatora")
+                    .setPassword("chatora2024")
+                    .createIceServer()
+            )
+            // TCP TURN on 443 (Plain TURN over 443 — excellent for bypassing ISP throttling)
+            servers.add(
+                PeerConnection.IceServer.builder("turn:$vpsIp:443?transport=tcp")
+                    .setUsername("chatora")
+                    .setPassword("chatora2024")
+                    .createIceServer()
+            )
+            // TURNS (TLS-wrapped TURN over 443 — requires TLS certs on server to work)
+            servers.add(
+                PeerConnection.IceServer.builder("turns:$vpsIp:443?transport=tcp")
+                    .setUsername("chatora")
+                    .setPassword("chatora2024")
+                    .createIceServer()
+            )
+            android.util.Log.d(TAG, "VPS TURN+TURNS servers configured on 3478 & 443: $vpsIp")
+        }
+
+        // ── SECONDARY TURN: BuildConfig (configurable) ──
         val turnUrl = BuildConfig.TURN_URL
         val turnUser = BuildConfig.TURN_USERNAME
         val turnPass = BuildConfig.TURN_PASSWORD
 
         if (turnUrl.isNotEmpty() && turnUser.isNotEmpty()) {
-            // UDP TURN
             servers.add(
                 PeerConnection.IceServer.builder(turnUrl)
                     .setUsername(turnUser)
                     .setPassword(turnPass)
                     .createIceServer()
             )
-            // TCP TURN (for firewall-restricted networks)
             val tcpUrl = if (turnUrl.contains("?")) turnUrl else "$turnUrl?transport=tcp"
             servers.add(
                 PeerConnection.IceServer.builder(tcpUrl)
@@ -307,19 +356,10 @@ class WebRtcClient @Inject constructor(
                     .setPassword(turnPass)
                     .createIceServer()
             )
-            // TURNS (TLS-wrapped TURN for maximum compatibility)
-            val turnsUrl = turnUrl.replace("turn:", "turns:")
-            servers.add(
-                PeerConnection.IceServer.builder(turnsUrl)
-                    .setUsername(turnUser)
-                    .setPassword(turnPass)
-                    .createIceServer()
-            )
-            android.util.Log.d(TAG, "TURN servers configured from BuildConfig: $turnUrl")
-        } else {
-            android.util.Log.w(TAG, "No TURN credentials in BuildConfig — NAT traversal may fail for restricted networks")
+            android.util.Log.d(TAG, "BuildConfig TURN servers configured: $turnUrl")
         }
 
+        android.util.Log.d(TAG, "Total ICE servers configured: ${servers.size}")
         return servers
     }
 
@@ -351,9 +391,12 @@ class WebRtcClient @Inject constructor(
                 sdpSemantics = PeerConnection.SdpSemantics.UNIFIED_PLAN
                 bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
                 rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
-                tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.DISABLED
+                tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
                 continualGatheringPolicy = PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
-                iceTransportsType = PeerConnection.IceTransportsType.ALL
+                // FORCE all traffic through TURN relay — critical for Iranian mobile ISPs
+                // P2P "ghost connections" happen between Irancell/MCI where ICE connects
+                // but media doesn't flow due to symmetric NAT. RELAY guarantees media flow.
+                iceTransportsType = PeerConnection.IceTransportsType.RELAY
                 // ICE candidate pool — pre-allocate for faster connection
                 iceCandidatePoolSize = 2
             }
@@ -432,7 +475,8 @@ class WebRtcClient @Inject constructor(
                     newState?.let {
                         onConnectionStateChanged?.invoke(it)
                         if (it == PeerConnection.PeerConnectionState.CONNECTED) {
-                            android.util.Log.d(TAG, "Connection established. Reinforcing Loudspeaker...")
+                            android.util.Log.d(TAG, "Connection established. Applying bitrate constraints + Reinforcing Loudspeaker...")
+                            applyBandwidthConstraints()
                             enableSpeakerphone()
                         }
                     }
@@ -543,18 +587,28 @@ class WebRtcClient @Inject constructor(
     private fun verifyAudioTracks() {
         scope.launch {
             delay(AUDIO_VERIFY_DELAY_MS)
-            val localAudio = localAudioTrack
-            val remoteAudio = remoteAudioTrack
-
-            android.util.Log.d(TAG, "Audio verification: local=${localAudio?.enabled()}, remote=${remoteAudio?.enabled()}")
-
-            if (localAudio != null && !localAudio.enabled()) {
-                android.util.Log.w(TAG, "Local audio track disabled — re-enabling")
-                localAudio.setEnabled(true)
+            // Guard: if PC was disposed during the delay, skip verification
+            if (!isPeerConnectionActive.get()) {
+                android.util.Log.d(TAG, "Audio verification skipped — PeerConnection no longer active")
+                return@launch
             }
-            if (remoteAudio != null && !remoteAudio.enabled()) {
-                android.util.Log.w(TAG, "Remote audio track disabled — re-enabling")
-                remoteAudio.setEnabled(true)
+            try {
+                val localAudio = localAudioTrack
+                val remoteAudio = remoteAudioTrack
+
+                android.util.Log.d(TAG, "Audio verification: local=${localAudio?.enabled()}, remote=${remoteAudio?.enabled()}")
+
+                if (localAudio != null && !localAudio.enabled()) {
+                    android.util.Log.w(TAG, "Local audio track disabled — re-enabling")
+                    localAudio.setEnabled(true)
+                }
+                if (remoteAudio != null && !remoteAudio.enabled()) {
+                    android.util.Log.w(TAG, "Remote audio track disabled — re-enabling")
+                    remoteAudio.setEnabled(true)
+                }
+            } catch (e: IllegalStateException) {
+                // MediaStreamTrack was disposed between our check and access — safe to ignore
+                android.util.Log.w(TAG, "Audio verification: track already disposed (safe to ignore)", e)
             }
         }
     }
@@ -566,12 +620,13 @@ class WebRtcClient @Inject constructor(
         }
         peerConnection?.createOffer(object : SdpObserverAdapter("createOffer") {
             override fun onCreateSuccess(desc: SessionDescription?) {
-                peerConnection?.setLocalDescription(object : SdpObserverAdapter("setLocalDesc-offer") {}, desc)
+                val constrainedDesc = desc?.let { prepareSdp(it) } ?: desc
+                peerConnection?.setLocalDescription(object : SdpObserverAdapter("setLocalDesc-offer") {}, constrainedDesc)
                 val payload = JSONObject().apply {
-                    put("type", desc?.type?.canonicalForm())
-                    put("sdp", desc?.description)
+                    put("type", constrainedDesc?.type?.canonicalForm())
+                    put("sdp", constrainedDesc?.description)
                 }
-                android.util.Log.d(TAG, "Generated SDP (${desc?.type}): ${desc?.description?.take(80)}...")
+                android.util.Log.d(TAG, "Generated SDP (${constrainedDesc?.type}): ${constrainedDesc?.description?.take(80)}...")
                 currentMatchId?.let { id ->
                     socketManager.sendSignal(id, "offer", payload.toString())
                 }
@@ -603,10 +658,11 @@ class WebRtcClient @Inject constructor(
     fun createAnswer() {
         peerConnection?.createAnswer(object : SdpObserverAdapter("createAnswer") {
             override fun onCreateSuccess(desc: SessionDescription?) {
-                peerConnection?.setLocalDescription(object : SdpObserverAdapter("setLocalDesc-answer") {}, desc)
+                val constrainedDesc = desc?.let { prepareSdp(it) } ?: desc
+                peerConnection?.setLocalDescription(object : SdpObserverAdapter("setLocalDesc-answer") {}, constrainedDesc)
                 val payload = JSONObject().apply {
-                    put("type", desc?.type?.canonicalForm())
-                    put("sdp", desc?.description)
+                    put("type", constrainedDesc?.type?.canonicalForm())
+                    put("sdp", constrainedDesc?.description)
                 }
                 currentMatchId?.let { id ->
                     socketManager.sendSignal(id, "answer", payload.toString())
@@ -650,6 +706,119 @@ class WebRtcClient @Inject constructor(
                 pendingIceCandidates.clear()
             }
         }
+    }
+
+    /**
+     * Adaptive bitrate control — sets max/min/start bitrate on the video sender.
+     *
+     * WebRTC internally uses GCC (Google Congestion Control) to estimate available
+     * bandwidth. By setting these parameters, we tell the encoder:
+     * - Start at [VIDEO_START_BITRATE_BPS] (800 kbps — balanced)
+     * - Scale UP to [VIDEO_MAX_BITRATE_BPS] (1.5 Mbps) on fast networks
+     * - Scale DOWN to [VIDEO_MIN_BITRATE_BPS] (100 kbps) on slow networks
+     *
+     * Without this, WebRTC may try to maintain high bitrate on a slow link,
+     * causing packet loss and black screens.
+     */
+    private fun applyBandwidthConstraints() {
+        try {
+            val pc = peerConnection ?: return
+            pc.senders.forEach { sender ->
+                val track = sender.track() ?: return@forEach
+                val params = sender.parameters
+
+                when (track.kind()) {
+                    "video" -> {
+                        if (params.encodings.isNotEmpty()) {
+                            params.encodings[0].apply {
+                                maxBitrateBps = VIDEO_MAX_BITRATE_BPS
+                                minBitrateBps = VIDEO_MIN_BITRATE_BPS
+                                // Let WebRTC's GCC algorithm adapt within this range
+                            }
+                            sender.parameters = params
+                            android.util.Log.d(TAG, "Video bitrate constraints applied: min=${VIDEO_MIN_BITRATE_BPS/1000}kbps, max=${VIDEO_MAX_BITRATE_BPS/1000}kbps")
+                        }
+                    }
+                    "audio" -> {
+                        if (params.encodings.isNotEmpty()) {
+                            params.encodings[0].maxBitrateBps = AUDIO_MAX_BITRATE_BPS
+                            sender.parameters = params
+                            android.util.Log.d(TAG, "Audio bitrate constraint applied: max=${AUDIO_MAX_BITRATE_BPS/1000}kbps")
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Error applying bandwidth constraints", e)
+        }
+    }
+
+    /**
+     * Prepares SDP for signaling:
+     * 1. Applies bandwidth limits (b=AS:)
+     * 2. Prioritizes H.264 codec over VP8/VP9 (better hardware support/reliability)
+     */
+    private fun prepareSdp(desc: SessionDescription): SessionDescription {
+        try {
+            val lines = desc.description.lines().toMutableList()
+            val modifiedLines = mutableListOf<String>()
+            var bandwidthAdded = false
+
+            for (line in lines) {
+                // Codec Prioritization: Find H264 and move it to the front
+                if (line.startsWith("m=video")) {
+                    modifiedLines.add(line)
+                    if (!bandwidthAdded) {
+                        modifiedLines.add("b=AS:$SDP_BANDWIDTH_LIMIT_KBPS")
+                        bandwidthAdded = true
+                    }
+                    continue
+                }
+
+                modifiedLines.add(line)
+            }
+
+            // More aggressive H264 preference by manipulating payload types
+            val sdpString = modifiedLines.joinToString("\n")
+            val finalSdp = preferCodec(sdpString, "H264", true)
+
+            return SessionDescription(desc.type, finalSdp)
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Error preparing SDP", e)
+            return desc
+        }
+    }
+
+    private fun preferCodec(sdp: String, codec: String, isVideo: Boolean): String {
+        val lines = sdp.split("\n")
+        val mLineIndex = lines.indexOfFirst { it.startsWith(if (isVideo) "m=video" else "m=audio") }
+        if (mLineIndex == -1) return sdp
+
+        val mLine = lines[mLineIndex]
+        val parts = mLine.split(" ").toMutableList()
+        if (parts.size < 4) return sdp
+
+        val payloadTypes = parts.subList(3, parts.size)
+        val codecPayloadTypes = mutableListOf<String>()
+
+        for (line in lines) {
+            if (line.startsWith("a=rtpmap") && line.contains(codec, ignoreCase = true)) {
+                val pt = line.split(" ")[0].split(":")[1]
+                if (payloadTypes.contains(pt)) {
+                    codecPayloadTypes.add(pt)
+                }
+            }
+        }
+
+        if (codecPayloadTypes.isEmpty()) return sdp
+
+        val newPayloadTypes = codecPayloadTypes + (payloadTypes - codecPayloadTypes)
+        parts.subList(3, parts.size).clear()
+        parts.addAll(newPayloadTypes)
+
+        val newLines = lines.toMutableList()
+        newLines[mLineIndex] = parts.joinToString(" ")
+        return newLines.joinToString("\n")
     }
 
 

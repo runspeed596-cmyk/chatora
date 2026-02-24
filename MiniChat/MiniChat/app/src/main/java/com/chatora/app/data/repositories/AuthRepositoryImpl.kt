@@ -104,6 +104,7 @@ class AuthRepositoryImpl @Inject constructor(
             val body = response.body()
             if (body?.success == true && body.data != null) {
                 tokenManager.saveToken(body.data.accessToken)
+                tokenManager.saveRefreshToken(body.data.refreshToken)
                 
                 GlobalScope.launch {
                     try {

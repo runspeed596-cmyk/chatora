@@ -37,8 +37,8 @@ class MatchViewModel @Inject constructor(
         private const val PARTNER_LEFT_DELAY_MS = 1500L
         private const val FAILED_STATE_DELAY_MS = 3000L
         private const val ICE_RECOVERY_WINDOW_MS = 15000L
-        private const val RETRY_SINK_DELAY_MS = 3000L
-        private const val RETRY_FINAL_DELAY_MS = 6000L
+        private const val RETRY_SINK_DELAY_MS = 2000L
+        private const val RETRY_FINAL_DELAY_MS = 4000L
     }
 
     private val _currentUser = MutableStateFlow<com.chatora.app.data.User?>(null)
@@ -154,13 +154,17 @@ class MatchViewModel @Inject constructor(
             }
         }
 
-        // Initialize WebSocket Connection
-        val token = tokenManager.getToken()
-        if (token != null) {
-            android.util.Log.d(TAG, "Token found (${token.take(10)}...), connecting...")
-            repository.connectAndSubscribe(token)
-        } else {
-            android.util.Log.e(TAG, "Token is NULL in MatchViewModel init!")
+        // Initialize WebSocket Connection — on IO dispatcher with small delay
+        // to avoid blocking UI rendering during first-launch (gender dialog ANR fix)
+        viewModelScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+            kotlinx.coroutines.delay(300) // Let compose render first
+            val token = tokenManager.getToken()
+            if (token != null) {
+                android.util.Log.d(TAG, "Token found (${token.take(10)}...), connecting...")
+                repository.connectAndSubscribe(token)
+            } else {
+                android.util.Log.e(TAG, "Token is NULL in MatchViewModel init!")
+            }
         }
     }
 
@@ -455,6 +459,7 @@ class MatchViewModel @Inject constructor(
     private fun launchRetryMechanism() {
         retryJob?.cancel()
         retryJob = viewModelScope.launch {
+            // ── Phase 1: Re-attach sink (cheap, fixes renderer race conditions) ──
             kotlinx.coroutines.delay(RETRY_SINK_DELAY_MS)
             if (!_remoteVideoReady.value && _matchState.value is MatchUiState.Found) {
                 android.util.Log.w(TAG, "No video frame after ${RETRY_SINK_DELAY_MS / 1000}s — retrying sink attachment")
@@ -469,9 +474,11 @@ class MatchViewModel @Inject constructor(
                     }
                 }
             }
+
+            // ── Phase 2: Second sink re-attach ──
             kotlinx.coroutines.delay(RETRY_SINK_DELAY_MS)
             if (!_remoteVideoReady.value && _matchState.value is MatchUiState.Found) {
-                android.util.Log.w(TAG, "No video frame after ${RETRY_FINAL_DELAY_MS / 1000}s — final retry")
+                android.util.Log.w(TAG, "No video frame after ${RETRY_FINAL_DELAY_MS / 1000}s — second retry")
                 val renderer = remoteRendererRef ?: return@launch
                 webRtcClient.remoteVideoTrack?.let { track ->
                     try {
@@ -480,6 +487,26 @@ class MatchViewModel @Inject constructor(
                     } catch (e: Exception) {
                         android.util.Log.e(TAG, "Final sink re-attach failed", e)
                     }
+                }
+            }
+
+            // ── Phase 3: Full re-negotiation (nuclear option) ──
+            // If sink re-attachment didn't work, the problem is in the media path.
+            // This happens when TURN relay connects (ICE ok) but media doesn't flow.
+            // Solution: re-create PeerConnection with new ICE candidates.
+            kotlinx.coroutines.delay(RETRY_SINK_DELAY_MS)
+            if (!_remoteVideoReady.value && _matchState.value is MatchUiState.Found) {
+                android.util.Log.w(TAG, "No video after ${(RETRY_SINK_DELAY_MS * 3) / 1000}s — FULL RE-NEGOTIATION")
+                try {
+                    webRtcClient.closePeerConnection()
+                    if (!webRtcClient.areLocalTracksInitialized) {
+                        webRtcClient.awaitLocalTracks()
+                    }
+                    webRtcClient.createPeerConnection()
+                    webRtcClient.createOffer()
+                    android.util.Log.d(TAG, "Re-negotiation initiated — new offer sent")
+                } catch (e: Exception) {
+                    android.util.Log.e(TAG, "Re-negotiation failed", e)
                 }
             }
         }

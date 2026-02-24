@@ -170,6 +170,7 @@ curl -k https://172.86.95.177/auth/health
 
 If this fails, you need to set up SSL. Two options:
 
+
 ### Option A: Self-Signed Certificate (for IP-based servers)
 
 ```bash

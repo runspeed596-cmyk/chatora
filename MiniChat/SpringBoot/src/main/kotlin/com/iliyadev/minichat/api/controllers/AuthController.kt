@@ -2,9 +2,14 @@ package com.iliyadev.minichat.api.controllers
 
 import com.iliyadev.minichat.api.dtos.*
 import com.iliyadev.minichat.core.security.GoogleAuthService
+import com.iliyadev.minichat.core.security.JwtService
+import com.iliyadev.minichat.core.security.CustomUserDetailsService
 import com.iliyadev.minichat.core.response.ApiResponse
 import com.iliyadev.minichat.domain.usecases.auth.*
+import io.jsonwebtoken.ExpiredJwtException
+import io.jsonwebtoken.JwtException
 import jakarta.validation.Valid
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -16,8 +21,11 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController(
     private val loginUseCase: LoginUseCase,
     private val googleLoginUseCase: GoogleLoginUseCase,
-    private val emailAuthUseCase: EmailAuthUseCase
+    private val emailAuthUseCase: EmailAuthUseCase,
+    private val jwtService: JwtService,
+    private val userDetailsService: CustomUserDetailsService
 ) {
+    private val logger = LoggerFactory.getLogger(AuthController::class.java)
 
     @GetMapping("/health")
     fun health(): ApiResponse<Map<String, String>> {
@@ -80,8 +88,45 @@ class AuthController(
     }
 
     @PostMapping("/refresh")
-    fun refresh(@Valid @RequestBody request: RefreshTokenRequest): ApiResponse<String?> {
-        // TODO: Implement refresh logic
-        return ApiResponse.error("NOT_IMPLEMENTED", "Refresh not implemented yet") as ApiResponse<String?>
+    fun refresh(@Valid @RequestBody request: RefreshTokenRequest): ApiResponse<AuthResponse> {
+        return try {
+            val username = jwtService.extractUsername(request.refreshToken)
+            val userDetails = userDetailsService.loadUserByUsername(username)
+
+            if (!jwtService.isTokenValid(request.refreshToken, userDetails)) {
+                logger.warn("Refresh token invalid for user: {}", username)
+                @Suppress("UNCHECKED_CAST")
+                return ApiResponse.error("INVALID_TOKEN", "Refresh token is invalid") as ApiResponse<AuthResponse>
+            }
+
+            val newAccessToken = jwtService.generateToken(userDetails)
+            val newRefreshToken = jwtService.generateRefreshToken(userDetails)
+
+            logger.info("Token refreshed successfully for user: {}", username)
+
+            ApiResponse.success(
+                AuthResponse(
+                    accessToken = newAccessToken,
+                    refreshToken = newRefreshToken,
+                    userId = username, // Will be resolved by the client from the token
+                    username = username,
+                    tempUsername = false,
+                    emailVerified = true
+                ),
+                "Token refreshed successfully"
+            )
+        } catch (e: ExpiredJwtException) {
+            logger.warn("Refresh token expired: {}", e.message)
+            @Suppress("UNCHECKED_CAST")
+            ApiResponse.error("TOKEN_EXPIRED", "Refresh token has expired. Please login again.") as ApiResponse<AuthResponse>
+        } catch (e: JwtException) {
+            logger.warn("Invalid refresh token: {}", e.message)
+            @Suppress("UNCHECKED_CAST")
+            ApiResponse.error("INVALID_TOKEN", "Invalid refresh token") as ApiResponse<AuthResponse>
+        } catch (e: Exception) {
+            logger.error("Refresh token error", e)
+            @Suppress("UNCHECKED_CAST")
+            ApiResponse.error("REFRESH_FAILED", "Failed to refresh token") as ApiResponse<AuthResponse>
+        }
     }
 }

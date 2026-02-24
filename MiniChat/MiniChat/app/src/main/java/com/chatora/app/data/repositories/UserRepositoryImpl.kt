@@ -55,6 +55,7 @@ class UserRepositoryImpl @Inject constructor(
         if (loginResponse.isSuccessful) {
             loginResponse.body()?.data?.let {
                 tokenManager.saveToken(it.accessToken)
+                tokenManager.saveRefreshToken(it.refreshToken)
             }
         }
     }

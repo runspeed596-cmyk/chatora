@@ -220,10 +220,10 @@ fun AuthScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.AccountCircle, // Placeholder for Google Icon
+                                painter = painterResource(id = R.drawable.ic_google),
                                 contentDescription = null,
                                 modifier = Modifier.size(24.dp),
-                                tint = if (isDark) Color.White else PrimaryNeon
+                                tint = Color.Unspecified // Keep original Google colors
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(

@@ -28,9 +28,9 @@ android {
             buildConfigField("String", "WS_URL", "\"ws://172.86.95.177/ws-native\"")
             buildConfigField("Boolean", "ENABLE_LOGGING", "true")
             // TURN server config — debug can use free servers for local testing
-            buildConfigField("String", "TURN_URL", "\"turn:openrelay.metered.ca:443\"")
-            buildConfigField("String", "TURN_USERNAME", "\"openrelayproject\"")
-            buildConfigField("String", "TURN_PASSWORD", "\"openrelayproject\"")
+            buildConfigField("String", "TURN_URL", "\"\"")
+            buildConfigField("String", "TURN_USERNAME", "\"\"")
+            buildConfigField("String", "TURN_PASSWORD", "\"\"")
         }
         release {
             isMinifyEnabled = false
@@ -44,9 +44,9 @@ android {
             buildConfigField("String", "WS_URL", "\"ws://172.86.95.177/ws-native\"")
             buildConfigField("Boolean", "ENABLE_LOGGING", "false")
             // TURN server config — replace with your own TURN credentials for production
-            buildConfigField("String", "TURN_URL", "\"turn:openrelay.metered.ca:443\"")
-            buildConfigField("String", "TURN_USERNAME", "\"openrelayproject\"")
-            buildConfigField("String", "TURN_PASSWORD", "\"openrelayproject\"")
+            buildConfigField("String", "TURN_URL", "\"\"")
+            buildConfigField("String", "TURN_USERNAME", "\"\"")
+            buildConfigField("String", "TURN_PASSWORD", "\"\"")
         }
     }
     compileOptions {
