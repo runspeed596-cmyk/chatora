@@ -34,7 +34,7 @@ class WebRtcClient @Inject constructor(
     private var peerConnection: PeerConnection? = null
 
     // Media
-    private val eglBase = EglBase.create()
+    private val eglBase by lazy { EglBase.create() }
     private var localVideoTrack: VideoTrack? = null
     private var localAudioTrack: AudioTrack? = null
     private var videoCapturer: VideoCapturer? = null

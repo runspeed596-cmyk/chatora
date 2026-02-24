@@ -20,6 +20,7 @@ import java.util.*
 
 @RestController
 @RequestMapping("/admin")
+@CrossOrigin(origins = ["*"])
 class AdminController(
     private val userRepository: UserRepository,
     private val subscriptionPlanRepository: SubscriptionPlanRepository,
