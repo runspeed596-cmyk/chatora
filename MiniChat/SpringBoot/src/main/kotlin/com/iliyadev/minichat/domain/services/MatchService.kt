@@ -387,11 +387,13 @@ class MatchService(
      * Stores a chat message in the ephemeral buffer for admin monitoring.
      */
     fun addMessageToBuffer(matchId: String, message: ChatMessageResponse) {
+        logger.info("BUFFERING message for admin: matchId=$matchId, sender=${message.sender}")
         val list = matchMessages.computeIfAbsent(matchId) { Collections.synchronizedList(mutableListOf()) }
         synchronized(list) {
             if (list.size >= 50) list.removeAt(0)
             list.add(message)
         }
+        logger.info("BUFFER status for $matchId: ${list.size} messages stored")
     }
 
     /**

@@ -106,11 +106,11 @@ class WebRtcClient @Inject constructor(
     private var isFactoryInitialized = false
     private val factoryLock = Any()
 
-    private fun ensureFactoryInitialized() {
-        if (isFactoryInitialized) return
+    private suspend fun ensureFactoryInitialized() = withContext(Dispatchers.IO) {
+        if (isFactoryInitialized) return@withContext
         synchronized(factoryLock) {
-            if (isFactoryInitialized) return
-            android.util.Log.d(TAG, "Lazy-initializing PeerConnectionFactory...")
+            if (isFactoryInitialized) return@synchronized
+            android.util.Log.d(TAG, "Lazy-initializing PeerConnectionFactory on IO thread...")
             initializeFactory()
             isFactoryInitialized = true
             android.util.Log.d(TAG, "PeerConnectionFactory initialized successfully")
@@ -384,7 +384,7 @@ class WebRtcClient @Inject constructor(
      *
      * Caller is responsible for calling closePeerConnection() BEFORE this.
      */
-    fun createPeerConnection() {
+    suspend fun createPeerConnection() {
         synchronized(pcLock) {
             isPeerConnectionReady = false
             hasRemoteDescription = false
