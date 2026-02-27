@@ -110,10 +110,14 @@ class WebRtcClient @Inject constructor(
         if (isFactoryInitialized) return@withContext
         synchronized(factoryLock) {
             if (isFactoryInitialized) return@synchronized
-            android.util.Log.d(TAG, "Lazy-initializing PeerConnectionFactory on IO thread...")
+            android.util.Log.d(TAG, "Lazy-initializing PeerConnectionFactory + EglBase on IO thread...")
+            
+            // Accessing eglBase here forces lazy-init on IO thread instead of Main thread
+            val context = eglBase.eglBaseContext 
+            
             initializeFactory()
             isFactoryInitialized = true
-            android.util.Log.d(TAG, "PeerConnectionFactory initialized successfully")
+            android.util.Log.d(TAG, "WebRTC components initialized successfully")
         }
     }
 
@@ -150,24 +154,33 @@ class WebRtcClient @Inject constructor(
     private var localSurface: SurfaceViewRenderer? = null
 
     fun startLocalVideo(surface: SurfaceViewRenderer) {
-        try {
-            surface.init(eglBase.eglBaseContext, null)
-        } catch (e: Exception) {
-            // Already initialized
-        }
         surface.setMirror(true)
         localSurface = surface
 
         if (isCameraRunning && localVideoTrack != null) {
-            localVideoTrack?.addSink(surface)
+            try {
+                localVideoTrack?.addSink(surface)
+            } catch (e: Exception) {
+                android.util.Log.w(TAG, "startLocalVideo: Sink already added or failed")
+            }
             return
         }
 
-        // Move ALL heavy WebRTC init to background thread — prevents ANR
+        // Move ALL heavy WebRTC init to background thread — prevents ANR and freezes
         scope.launch {
             try {
-                // Ensure factory is ready (lazy init — first call initializes it)
+                // Ensure factory + EglBase are ready (offloaded to IO thread)
                 ensureFactoryInitialized()
+                
+                // Initialize surface on worker thread — WebRTC's SurfaceViewRenderer supports this
+                withContext(Dispatchers.Main) {
+                    try {
+                        surface.init(eglBase.eglBaseContext, null)
+                    } catch (e: Exception) {
+                        // Already initialized
+                    }
+                }
+
                 videoCapturer = createCameraCapturer(context) ?: run {
                     android.util.Log.e(TAG, "Failed to create camera capturer")
                     if (!localTracksDeferred.isCompleted) localTracksDeferred.complete(false)
@@ -385,6 +398,9 @@ class WebRtcClient @Inject constructor(
      * Caller is responsible for calling closePeerConnection() BEFORE this.
      */
     suspend fun createPeerConnection() {
+        // Ensure factory is ready (lazy init — should already be initialized by startLocalVideo)
+        ensureFactoryInitialized()
+
         synchronized(pcLock) {
             isPeerConnectionReady = false
             hasRemoteDescription = false
@@ -392,9 +408,6 @@ class WebRtcClient @Inject constructor(
             pendingIceCandidates.clear()
             iceRecoveryJob?.cancel()
             remoteAudioTrack = null
-
-            // Ensure factory is ready (lazy init — should already be initialized by startLocalVideo)
-            ensureFactoryInitialized()
 
             // Safety: dispose leftover PC if caller forgot to close
             peerConnection?.let {

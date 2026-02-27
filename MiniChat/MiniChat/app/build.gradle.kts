@@ -24,8 +24,8 @@ android {
         debug {
             isMinifyEnabled = false
             isShrinkResources = false
-            buildConfigField("String", "API_BASE_URL", "\"http://172.86.95.177/\"")
-            buildConfigField("String", "WS_URL", "\"ws://172.86.95.177/ws-native\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://192.168.70.113:8080/\"")
+            buildConfigField("String", "WS_URL", "\"ws://192.168.70.113:8080/ws-native\"")
             buildConfigField("Boolean", "ENABLE_LOGGING", "true")
             // TURN server config — debug can use free servers for local testing
             buildConfigField("String", "TURN_URL", "\"\"")
@@ -40,8 +40,8 @@ android {
                 "proguard-rules.pro"
             )
             // TODO: Switch to HTTPS/WSS once SSL certificate is installed
-            buildConfigField("String", "API_BASE_URL", "\"http://172.86.95.177/\"")
-            buildConfigField("String", "WS_URL", "\"ws://172.86.95.177/ws-native\"")
+            buildConfigField("String", "API_BASE_URL", "\"http://192.168.70.113:8080/\"")
+            buildConfigField("String", "WS_URL", "\"ws://192.168.70.113:8080/ws-native\"")
             buildConfigField("Boolean", "ENABLE_LOGGING", "false")
             // TURN server config — replace with your own TURN credentials for production
             buildConfigField("String", "TURN_URL", "\"\"")

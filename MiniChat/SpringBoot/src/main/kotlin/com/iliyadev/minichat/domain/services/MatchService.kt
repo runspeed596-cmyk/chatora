@@ -76,7 +76,8 @@ class MatchService(
         val matchId: String,
         val user1: String,
         val user2: String,
-        val startedAt: Long
+        val startedAt: Long,
+        val lastMessage: String? = null
     )
 
     /**
@@ -95,7 +96,8 @@ class MatchService(
                 matchId = matchId,
                 user1 = username,
                 user2 = partnerUsername,
-                startedAt = matchCreatedTime[username] ?: 0L
+                startedAt = matchCreatedTime[username] ?: 0L,
+                lastMessage = matchMessages[matchId]?.lastOrNull()?.message
             )
         }
     }

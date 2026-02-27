@@ -1,0 +1,22 @@
+# KMP Build
+.gradle/
+build/
+.kotlin/
+local.properties
+
+# IDE
+.idea/
+*.iml
+
+# iOS
+iosApp/Pods/
+iosApp/*.xcworkspace/
+iosApp/*.xcuserdata/
+DerivedData/
+
+# Node (webpack)
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

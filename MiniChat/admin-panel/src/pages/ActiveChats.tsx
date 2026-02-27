@@ -11,6 +11,7 @@ interface ActiveMatch {
     user1: string;
     user2: string;
     startedAt: number;
+    lastMessage?: string;
 }
 
 interface ChatMessage {
@@ -277,6 +278,7 @@ export const ActiveChats: React.FC = () => {
                                 <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">شناسه</th>
                                 <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">کاربر ۱</th>
                                 <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">کاربر ۲</th>
+                                <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">آخرین پیام</th>
                                 <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">مدت تماس</th>
                                 <th className="px-6 py-4 text-right text-xs font-black text-gray-500 dark:text-gray-400 uppercase tracking-wider font-vazir">عملیات</th>
                             </tr>
@@ -307,6 +309,13 @@ export const ActiveChats: React.FC = () => {
                                                 </span>
                                             </div>
                                             <span className="font-bold text-gray-900 dark:text-white">{match.user2}</span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="max-w-[150px] truncate">
+                                            <span className="text-xs text-gray-500 dark:text-gray-400 font-vazir">
+                                                {match.lastMessage || 'در حال گفتگو...'}
+                                            </span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">

@@ -75,6 +75,7 @@ data class ActiveMatchDto(
     val matchId: String,
     val user1: String,
     val user2: String,
-    val startedAt: Long
+    val startedAt: Long,
+    val lastMessage: String? = null
 )
 

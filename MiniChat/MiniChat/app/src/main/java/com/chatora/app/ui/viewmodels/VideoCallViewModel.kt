@@ -43,8 +43,14 @@ class VideoCallViewModel @Inject constructor(
 
     fun initLocalVideo(renderer: SurfaceViewRenderer) {
         webRtcClient.startLocalVideo(renderer)
-        webRtcClient.createPeerConnection()
-        webRtcClient.createOffer() // Ideally only the "Caller" creates offer. 
+        viewModelScope.launch {
+            if (!webRtcClient.areLocalTracksInitialized) {
+                webRtcClient.awaitLocalTracks()
+            }
+            webRtcClient.createPeerConnection()
+            webRtcClient.createOffer()
+        }
+    }
         // For Random Chat, we might need a protocol to decide who is Caller (e.g. alphabetical ID sort, or server assigns).
         // Simplification for now: Both try to initiate? No, that causes glare.
         // Let's assume we receive a "MatchFound" event that has "role": "caller" or "callee".
@@ -56,7 +62,6 @@ class VideoCallViewModel @Inject constructor(
         // Let's assume the one who connects first waits? 
         // Correction: We'll implement a simple timeout or just have both send offer and WebRTC handles glare (imperfectly) or just randomize.
         // DECISION: We will wait for "SIGNAL" from socket. If no offer received in 2s, we create one.
-    }
     
     fun initRemoteVideo(renderer: SurfaceViewRenderer) {
         webRtcClient.initRemoteSurface(renderer)

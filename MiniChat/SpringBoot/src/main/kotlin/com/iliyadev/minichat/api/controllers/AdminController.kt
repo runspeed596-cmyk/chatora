@@ -235,7 +235,8 @@ class AdminController(
                 matchId = info.matchId,
                 user1 = info.user1,
                 user2 = info.user2,
-                startedAt = info.startedAt
+                startedAt = info.startedAt,
+                lastMessage = info.lastMessage
             )
         }
         return ApiResponse.success(matches)
